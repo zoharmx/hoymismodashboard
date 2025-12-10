@@ -1,0 +1,591 @@
+'use client'
+
+import { useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import {
+  Package,
+  Users,
+  FileText,
+  BarChart3,
+  Settings,
+  LogOut,
+  Search,
+  Plus,
+  Filter,
+  Download,
+  Edit,
+  Trash2,
+  Eye,
+  Menu,
+  X,
+  TrendingUp,
+  DollarSign,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  Phone,
+  Mail,
+  Bot,
+} from 'lucide-react'
+
+export default function MainDashboard() {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState('overview')
+  const [showAIAssistant, setShowAIAssistant] = useState(false)
+
+  const stats = [
+    {
+      label: 'Envíos Activos',
+      value: '48',
+      change: '+12%',
+      icon: Package,
+      color: 'blue',
+    },
+    {
+      label: 'Ingresos del Mes',
+      value: '$24,580',
+      change: '+18%',
+      icon: DollarSign,
+      color: 'green',
+    },
+    {
+      label: 'Clientes Totales',
+      value: '1,542',
+      change: '+8%',
+      icon: Users,
+      color: 'purple',
+    },
+    {
+      label: 'Pendientes',
+      value: '7',
+      change: '-3%',
+      icon: AlertCircle,
+      color: 'orange',
+    },
+  ]
+
+  const recentShipments = [
+    {
+      id: 'HM-2024-10045',
+      client: 'María González',
+      origin: 'Houston, TX',
+      destination: 'Monterrey, MX',
+      status: 'en-transito',
+      date: '24 Oct 2024',
+      value: '$125.00',
+    },
+    {
+      id: 'HM-2024-10044',
+      client: 'Carlos Ramírez',
+      origin: 'Dallas, TX',
+      destination: 'CDMX, MX',
+      status: 'pendiente',
+      date: '24 Oct 2024',
+      value: '$189.50',
+    },
+    {
+      id: 'HM-2024-10043',
+      client: 'Ana López',
+      origin: 'Houston, TX',
+      destination: 'Guadalajara, MX',
+      status: 'entregado',
+      date: '23 Oct 2024',
+      value: '$98.00',
+    },
+  ]
+
+  const clients = [
+    {
+      id: 'CLT-001234',
+      name: 'María González',
+      email: 'maria.g@ejemplo.com',
+      phone: '+1 (346) 555-0123',
+      totalShipments: 24,
+      lastShipment: '24 Oct 2024',
+    },
+    {
+      id: 'CLT-001233',
+      name: 'Carlos Ramírez',
+      email: 'carlos.r@ejemplo.com',
+      phone: '+1 (346) 555-0124',
+      totalShipments: 18,
+      lastShipment: '24 Oct 2024',
+    },
+    {
+      id: 'CLT-001232',
+      name: 'Ana López',
+      email: 'ana.l@ejemplo.com',
+      phone: '+1 (346) 555-0125',
+      totalShipments: 31,
+      lastShipment: '23 Oct 2024',
+    },
+  ]
+
+  const menuItems = [
+    { id: 'overview', label: 'Dashboard', icon: BarChart3 },
+    { id: 'shipments', label: 'Envíos', icon: Package },
+    { id: 'clients', label: 'Clientes', icon: Users },
+    { id: 'invoices', label: 'Facturación', icon: FileText },
+    { id: 'reports', label: 'Reportes', icon: TrendingUp },
+    { id: 'settings', label: 'Configuración', icon: Settings },
+  ]
+
+  const getStatusBadge = (status: string) => {
+    const badges = {
+      'en-transito': (
+        <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-semibold flex items-center gap-1 w-fit">
+          <Clock className="w-3 h-3" /> En Tránsito
+        </span>
+      ),
+      entregado: (
+        <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-semibold flex items-center gap-1 w-fit">
+          <CheckCircle2 className="w-3 h-3" /> Entregado
+        </span>
+      ),
+      pendiente: (
+        <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-semibold flex items-center gap-1 w-fit">
+          <AlertCircle className="w-3 h-3" /> Pendiente
+        </span>
+      ),
+    }
+    return badges[status as keyof typeof badges]
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950">
+      {/* Top Navigation */}
+      <nav className="bg-slate-900 border-b border-white/10 fixed top-0 left-0 right-0 z-40">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden text-white"
+              >
+                {sidebarOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
+              </button>
+              <Link href="/" className="flex items-center space-x-2">
+                <Image
+                  src="/HoyMismo Logo.png"
+                  alt="HoyMismo"
+                  width={40}
+                  height={40}
+                />
+                <div className="hidden sm:block">
+                  <span className="font-display font-bold text-lg gradient-text">
+                    HoyMismo
+                  </span>
+                  <p className="text-xs text-slate-400">Dashboard Principal</p>
+                </div>
+              </Link>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowAIAssistant(!showAIAssistant)}
+                className="flex items-center space-x-2 px-4 py-2 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg transition-colors"
+              >
+                <Bot className="w-5 h-5" />
+                <span className="hidden md:inline">Asistente IA</span>
+              </button>
+              <div className="hidden md:block text-right">
+                <p className="text-sm font-semibold text-white">
+                  Admin Usuario
+                </p>
+                <p className="text-xs text-slate-400">Administrador</p>
+              </div>
+              <button className="p-2 text-slate-400 hover:text-white transition-colors">
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="flex pt-16">
+        {/* Sidebar */}
+        <aside
+          className={`${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-30 w-64 bg-slate-900 border-r border-white/10 transition-transform duration-300 pt-16 lg:pt-0`}
+        >
+          <div className="p-6 space-y-2">
+            {menuItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveSection(item.id)
+                  setSidebarOpen(false)
+                }}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeSection === item.id
+                    ? 'bg-primary-500/20 text-primary-400'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            {/* Overview Section */}
+            {activeSection === 'overview' && (
+              <>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  {stats.map((stat, index) => (
+                    <div key={index} className="card-gradient p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <stat.icon
+                          className={`w-10 h-10 text-${stat.color}-500`}
+                        />
+                        <span
+                          className={`text-sm font-semibold ${
+                            stat.change.startsWith('+')
+                              ? 'text-green-400'
+                              : 'text-red-400'
+                          }`}
+                        >
+                          {stat.change}
+                        </span>
+                      </div>
+                      <p className="text-3xl font-bold text-white mb-1">
+                        {stat.value}
+                      </p>
+                      <p className="text-sm text-slate-400">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Recent Activity */}
+                <div className="grid lg:grid-cols-2 gap-6">
+                  {/* Recent Shipments */}
+                  <div className="card-gradient p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-white">
+                        Envíos Recientes
+                      </h3>
+                      <button className="text-primary-400 hover:text-primary-300 text-sm font-semibold">
+                        Ver Todos
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {recentShipments.map((shipment) => (
+                        <div
+                          key={shipment.id}
+                          className="p-4 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="font-mono text-sm text-primary-400">
+                                {shipment.id}
+                              </p>
+                              <p className="text-white font-semibold">
+                                {shipment.client}
+                              </p>
+                            </div>
+                            <p className="font-semibold text-white">
+                              {shipment.value}
+                            </p>
+                          </div>
+                          <div className="flex items-center text-xs text-slate-400 mb-2">
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {shipment.origin} → {shipment.destination}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            {getStatusBadge(shipment.status)}
+                            <span className="text-xs text-slate-500">
+                              {shipment.date}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="card-gradient p-6">
+                    <h3 className="text-xl font-bold text-white mb-6">
+                      Acciones Rápidas
+                    </h3>
+                    <div className="space-y-3">
+                      <button className="w-full flex items-center justify-between p-4 bg-primary-500/10 hover:bg-primary-500/20 border border-primary-500/30 rounded-lg transition-colors group">
+                        <div className="flex items-center space-x-3">
+                          <Plus className="w-5 h-5 text-primary-400" />
+                          <span className="text-white font-semibold">
+                            Nuevo Envío
+                          </span>
+                        </div>
+                        <span className="text-primary-400">→</span>
+                      </button>
+                      <button className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <Users className="w-5 h-5 text-slate-400" />
+                          <span className="text-white font-semibold">
+                            Registrar Cliente
+                          </span>
+                        </div>
+                        <span className="text-slate-400">→</span>
+                      </button>
+                      <button className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="w-5 h-5 text-slate-400" />
+                          <span className="text-white font-semibold">
+                            Generar Factura
+                          </span>
+                        </div>
+                        <span className="text-slate-400">→</span>
+                      </button>
+                      <button className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <BarChart3 className="w-5 h-5 text-slate-400" />
+                          <span className="text-white font-semibold">
+                            Ver Reportes
+                          </span>
+                        </div>
+                        <span className="text-slate-400">→</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Shipments Section */}
+            {activeSection === 'shipments' && (
+              <div className="card-gradient p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+                  <h2 className="text-2xl font-bold text-white">
+                    Gestión de Envíos
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar envío..."
+                        className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                      />
+                    </div>
+                    <button className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                      <Filter className="w-5 h-5 text-slate-400" />
+                    </button>
+                    <button className="flex items-center gap-2 px-4 py-2 btn-primary">
+                      <Plus className="w-4 h-4" />
+                      Nuevo
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-700">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                          ID
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                          Cliente
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                          Ruta
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                          Estado
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                          Valor
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentShipments.map((shipment) => (
+                        <tr
+                          key={shipment.id}
+                          className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
+                        >
+                          <td className="py-4 px-4">
+                            <p className="font-mono text-sm text-white">
+                              {shipment.id}
+                            </p>
+                          </td>
+                          <td className="py-4 px-4 text-sm text-white">
+                            {shipment.client}
+                          </td>
+                          <td className="py-4 px-4">
+                            <p className="text-sm text-white">
+                              {shipment.origin}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              → {shipment.destination}
+                            </p>
+                          </td>
+                          <td className="py-4 px-4">
+                            {getStatusBadge(shipment.status)}
+                          </td>
+                          <td className="py-4 px-4 text-sm font-semibold text-white">
+                            {shipment.value}
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <button className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors">
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors">
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Clients Section */}
+            {activeSection === 'clients' && (
+              <div className="card-gradient p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+                  <h2 className="text-2xl font-bold text-white">
+                    Gestión de Clientes
+                  </h2>
+                  <button className="flex items-center gap-2 px-4 py-2 btn-primary">
+                    <Plus className="w-4 h-4" />
+                    Nuevo Cliente
+                  </button>
+                </div>
+
+                <div className="grid gap-4">
+                  {clients.map((client) => (
+                    <div
+                      key={client.id}
+                      className="p-6 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-white">
+                              {client.name}
+                            </h3>
+                            <span className="px-2 py-1 bg-primary-500/20 text-primary-400 rounded text-xs font-mono">
+                              {client.id}
+                            </span>
+                          </div>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div className="flex items-center text-sm text-slate-400">
+                              <Mail className="w-4 h-4 mr-2" />
+                              {client.email}
+                            </div>
+                            <div className="flex items-center text-sm text-slate-400">
+                              <Phone className="w-4 h-4 mr-2" />
+                              {client.phone}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-6 mt-3">
+                            <div>
+                              <p className="text-xs text-slate-500">
+                                Total Envíos
+                              </p>
+                              <p className="text-white font-semibold">
+                                {client.totalShipments}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-500">
+                                Último Envío
+                              </p>
+                              <p className="text-white font-semibold">
+                                {client.lastShipment}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Other Sections Placeholder */}
+            {(activeSection === 'invoices' ||
+              activeSection === 'reports' ||
+              activeSection === 'settings') && (
+              <div className="card-gradient p-8 text-center">
+                <h2 className="text-2xl font-bold text-white mb-4">
+                  {menuItems.find((item) => item.id === activeSection)?.label}
+                </h2>
+                <p className="text-slate-400">
+                  Esta sección está en desarrollo y contendrá funcionalidades
+                  avanzadas de gestión.
+                </p>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* AI Assistant Popup */}
+      {showAIAssistant && (
+        <div className="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-3rem)] z-50">
+          <div className="card-gradient p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Bot className="w-6 h-6 text-primary-500" />
+                <h3 className="font-semibold text-white">Asistente IA</h3>
+              </div>
+              <button
+                onClick={() => setShowAIAssistant(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div className="p-3 bg-slate-800/50 rounded-lg">
+                <p className="text-sm text-slate-300">
+                  ¡Hola! Soy tu asistente de IA. ¿En qué puedo ayudarte hoy?
+                </p>
+              </div>
+              <input
+                type="text"
+                placeholder="Escribe tu pregunta..."
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+              />
+              <p className="text-xs text-slate-500">
+                Powered by DeepSeek & Mistral AI
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
