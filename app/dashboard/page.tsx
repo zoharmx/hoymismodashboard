@@ -36,7 +36,7 @@ import { useClients, useShipments, useInvoices, useDashboardStats } from '@/lib/
 import ClientForm from '@/components/forms/ClientForm'
 import ShipmentForm from '@/components/forms/ShipmentForm'
 import InvoiceForm from '@/components/forms/InvoiceForm'
-import type { ShipmentStatus } from '@/types/crm'
+import type { ShipmentStatus, InvoiceStatus } from '@/types/crm'
 
 export default function MainDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -63,7 +63,7 @@ export default function MainDashboard() {
   ]
 
   const getStatusBadge = (status: ShipmentStatus) => {
-    const badges = {
+    const badges: Record<ShipmentStatus, JSX.Element> = {
       'en-transito': (
         <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-semibold flex items-center gap-1 w-fit">
           <Clock className="w-3 h-3" /> En Tránsito
@@ -103,8 +103,8 @@ export default function MainDashboard() {
     return badges[status] || null
   }
 
-  const getInvoiceStatusBadge = (status: string) => {
-    const badges = {
+  const getInvoiceStatusBadge = (status: InvoiceStatus) => {
+    const badges: Record<InvoiceStatus, JSX.Element> = {
       pagada: (
         <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-semibold">
           Pagada
