@@ -19,6 +19,17 @@ import { incrementClientShipments } from './clients'
 
 const COLLECTION_NAME = 'shipments'
 
+// Helper: Eliminar valores undefined de un objeto
+function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  const cleaned: any = {}
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      cleaned[key] = obj[key]
+    }
+  }
+  return cleaned
+}
+
 // Generar ID personalizado para envío
 export function generateShipmentId(): string {
   const year = new Date().getFullYear()
@@ -56,7 +67,10 @@ export async function createShipment(
       trackingHistory: [initialEvent],
     }
 
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), newShipment)
+    // Limpiar valores undefined antes de guardar en Firestore
+    const cleanedShipment = removeUndefined(newShipment)
+
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanedShipment)
 
     // Actualizar contador del cliente
     await incrementClientShipments(shipmentData.clientId, shipmentData.totalCost)
@@ -153,10 +167,13 @@ export async function updateShipment(
 ): Promise<void> {
   try {
     const docRef = doc(db, COLLECTION_NAME, id)
-    await updateDoc(docRef, {
+    const updateData = {
       ...updates,
       updatedAt: Timestamp.now(),
-    })
+    }
+    // Limpiar valores undefined antes de actualizar
+    const cleanedData = removeUndefined(updateData)
+    await updateDoc(docRef, cleanedData)
   } catch (error) {
     console.error('Error updating shipment:', error)
     throw error

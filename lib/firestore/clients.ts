@@ -18,6 +18,17 @@ import { Client, ClientFilters } from '@/types/crm'
 
 const COLLECTION_NAME = 'clients'
 
+// Helper: Eliminar valores undefined de un objeto
+function removeUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  const cleaned: any = {}
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      cleaned[key] = obj[key]
+    }
+  }
+  return cleaned
+}
+
 // Generar ID personalizado para cliente
 export function generateClientId(): string {
   const timestamp = Date.now().toString().slice(-6)
@@ -42,7 +53,10 @@ export async function createClient(
       updatedAt: now,
     }
 
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), newClient)
+    // Limpiar valores undefined antes de guardar en Firestore
+    const cleanedClient = removeUndefined(newClient)
+
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanedClient)
 
     return {
       id: docRef.id,
@@ -128,10 +142,13 @@ export async function updateClient(
 ): Promise<void> {
   try {
     const docRef = doc(db, COLLECTION_NAME, id)
-    await updateDoc(docRef, {
+    const updateData = {
       ...updates,
       updatedAt: Timestamp.now(),
-    })
+    }
+    // Limpiar valores undefined antes de actualizar
+    const cleanedData = removeUndefined(updateData)
+    await updateDoc(docRef, cleanedData)
   } catch (error) {
     console.error('Error updating client:', error)
     throw error
