@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Función auxiliar para verificar si el usuario está autenticado
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Función para verificar si el usuario es administrador
+    function isAdmin() {
+      return isSignedIn() &&
+             request.auth.token.admin == true;
+    }
+
+    // MODO DESARROLLO - Permitir todo
+    // ⚠️ USAR SOLO EN DESARROLLO - Cambiar antes de producción
+    match /{document=**} {
+      allow read, write: if true;
+    }
+
+    // MODO PRODUCCIÓN - Descomentar estas reglas y comentar la regla de desarrollo
+    /*
+    // Reglas para clientes
+    match /clients/{clientId} {
+      // Leer: cualquier usuario autenticado
+      allow read: if isSignedIn();
+
+      // Crear/Actualizar/Eliminar: solo administradores
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Reglas para envíos
+    match /shipments/{shipmentId} {
+      // Leer: cualquier usuario autenticado
+      allow read: if isSignedIn();
+
+      // Crear: usuarios autenticados
+      allow create: if isSignedIn();
+
+      // Actualizar/Eliminar: solo administradores
+      allow update, delete: if isAdmin();
+    }
+
+    // Reglas para facturas
+    match /invoices/{invoiceId} {
+      // Leer: cualquier usuario autenticado
+      allow read: if isSignedIn();
+
+      // Crear/Actualizar/Eliminar: solo administradores
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Reglas para actividades del CRM
+    match /crm_activities/{activityId} {
+      // Leer: cualquier usuario autenticado
+      allow read: if isSignedIn();
+
+      // Crear/Actualizar: usuarios autenticados
+      allow create, update: if isSignedIn();
+
+      // Eliminar: solo administradores
+      allow delete: if isAdmin();
+    }
+    */
+  }
+}

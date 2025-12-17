@@ -36,12 +36,47 @@ Plataforma tecnológica de última generación para HoyMismo Paquetería. Sistem
 
 - **Framework**: Next.js 14 (App Router)
 - **Lenguaje**: TypeScript
+- **Base de Datos**: Firebase Firestore
+- **Autenticación**: Firebase Auth
 - **Estilos**: Tailwind CSS
 - **Animaciones**: Framer Motion
 - **Formularios**: React Hook Form
 - **Iconos**: Lucide React
 - **IA**: DeepSeek API, Mistral AI
 - **Deployment**: Vercel / Firebase
+
+## 🔥 Sistema CRM Integrado
+
+El dashboard incluye un **sistema CRM completo** con Firebase Firestore:
+
+### Características del CRM
+- ✅ **Gestión de Clientes**: Individual y empresas con direcciones completas
+- ✅ **Gestión de Envíos**: Tracking en tiempo real, historial de eventos
+- ✅ **Facturación**: Sistema completo de facturas y pagos
+- ✅ **Actividades CRM**: Llamadas, emails, reuniones, notas y seguimientos
+- ✅ **Estadísticas**: Dashboard con métricas en tiempo real
+- ✅ **IDs Personalizados**: CLT-XXXXXX, HM-YYYY-XXXXX, INV-YYYY-XXXXX
+
+### 🚀 Quick Start - CRM
+
+```bash
+# 1. Configurar Firebase (ya está configurado con tus credenciales)
+npm run dev
+
+# 2. Ir a la página de setup
+http://localhost:3000/admin/setup
+
+# 3. Ejecutar test de conexión y seed de datos
+# (Usa los botones en la página de setup)
+```
+
+### 📚 Documentación del CRM
+
+- **[CRM_QUICKSTART.md](CRM_QUICKSTART.md)** - ⚡ Guía rápida (5 minutos)
+- **[FIREBASE_SETUP.md](FIREBASE_SETUP.md)** - 🔧 Configuración detallada
+- **[CRM_IMPLEMENTATION.md](CRM_IMPLEMENTATION.md)** - 📖 Documentación técnica
+- **[DEPLOYMENT_INSTRUCTIONS.md](DEPLOYMENT_INSTRUCTIONS.md)** - 🚀 Despliegue
+- **[SETUP_COMPLETE.md](SETUP_COMPLETE.md)** - ✅ Estado de la configuración
 
 ## Instalación
 

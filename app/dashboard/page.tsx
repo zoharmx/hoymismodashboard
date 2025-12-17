@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -28,100 +28,30 @@ import {
   Phone,
   Mail,
   Bot,
+  Loader2,
+  Calendar,
+  CreditCard,
 } from 'lucide-react'
+import { useClients, useShipments, useInvoices, useDashboardStats } from '@/lib/hooks/useFirestore'
+import ClientForm from '@/components/forms/ClientForm'
+import ShipmentForm from '@/components/forms/ShipmentForm'
+import InvoiceForm from '@/components/forms/InvoiceForm'
+import type { ShipmentStatus } from '@/types/crm'
 
 export default function MainDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('overview')
   const [showAIAssistant, setShowAIAssistant] = useState(false)
+  const [showClientForm, setShowClientForm] = useState(false)
+  const [showShipmentForm, setShowShipmentForm] = useState(false)
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const stats = [
-    {
-      label: 'Envíos Activos',
-      value: '48',
-      change: '+12%',
-      icon: Package,
-      color: 'blue',
-    },
-    {
-      label: 'Ingresos del Mes',
-      value: '$24,580',
-      change: '+18%',
-      icon: DollarSign,
-      color: 'green',
-    },
-    {
-      label: 'Clientes Totales',
-      value: '1,542',
-      change: '+8%',
-      icon: Users,
-      color: 'purple',
-    },
-    {
-      label: 'Pendientes',
-      value: '7',
-      change: '-3%',
-      icon: AlertCircle,
-      color: 'orange',
-    },
-  ]
-
-  const recentShipments = [
-    {
-      id: 'HM-2024-10045',
-      client: 'María González',
-      origin: 'Houston, TX',
-      destination: 'Monterrey, MX',
-      status: 'en-transito',
-      date: '24 Oct 2024',
-      value: '$125.00',
-    },
-    {
-      id: 'HM-2024-10044',
-      client: 'Carlos Ramírez',
-      origin: 'Dallas, TX',
-      destination: 'CDMX, MX',
-      status: 'pendiente',
-      date: '24 Oct 2024',
-      value: '$189.50',
-    },
-    {
-      id: 'HM-2024-10043',
-      client: 'Ana López',
-      origin: 'Houston, TX',
-      destination: 'Guadalajara, MX',
-      status: 'entregado',
-      date: '23 Oct 2024',
-      value: '$98.00',
-    },
-  ]
-
-  const clients = [
-    {
-      id: 'CLT-001234',
-      name: 'María González',
-      email: 'maria.g@ejemplo.com',
-      phone: '+1 (346) 555-0123',
-      totalShipments: 24,
-      lastShipment: '24 Oct 2024',
-    },
-    {
-      id: 'CLT-001233',
-      name: 'Carlos Ramírez',
-      email: 'carlos.r@ejemplo.com',
-      phone: '+1 (346) 555-0124',
-      totalShipments: 18,
-      lastShipment: '24 Oct 2024',
-    },
-    {
-      id: 'CLT-001232',
-      name: 'Ana López',
-      email: 'ana.l@ejemplo.com',
-      phone: '+1 (346) 555-0125',
-      totalShipments: 31,
-      lastShipment: '23 Oct 2024',
-    },
-  ]
+  // Cargar datos de Firestore
+  const { clients, loading: loadingClients, refetch: refetchClients } = useClients()
+  const { shipments, loading: loadingShipments, refetch: refetchShipments } = useShipments()
+  const { invoices, loading: loadingInvoices, refetch: refetchInvoices } = useInvoices()
+  const { stats: dashboardStats, loading: loadingStats } = useDashboardStats()
 
   const menuItems = [
     { id: 'overview', label: 'Dashboard', icon: BarChart3 },
@@ -132,7 +62,7 @@ export default function MainDashboard() {
     { id: 'settings', label: 'Configuración', icon: Settings },
   ]
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: ShipmentStatus) => {
     const badges = {
       'en-transito': (
         <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-semibold flex items-center gap-1 w-fit">
@@ -149,8 +79,111 @@ export default function MainDashboard() {
           <AlertCircle className="w-3 h-3" /> Pendiente
         </span>
       ),
+      'en-aduana': (
+        <span className="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs font-semibold flex items-center gap-1 w-fit">
+          <AlertCircle className="w-3 h-3" /> En Aduana
+        </span>
+      ),
+      'en-distribucion': (
+        <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs font-semibold flex items-center gap-1 w-fit">
+          <Package className="w-3 h-3" /> En Distribución
+        </span>
+      ),
+      cancelado: (
+        <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-semibold flex items-center gap-1 w-fit">
+          <X className="w-3 h-3" /> Cancelado
+        </span>
+      ),
+      devuelto: (
+        <span className="px-3 py-1 bg-slate-500/20 text-slate-400 rounded-full text-xs font-semibold flex items-center gap-1 w-fit">
+          <AlertCircle className="w-3 h-3" /> Devuelto
+        </span>
+      ),
     }
-    return badges[status as keyof typeof badges]
+    return badges[status] || null
+  }
+
+  const getInvoiceStatusBadge = (status: string) => {
+    const badges = {
+      pagada: (
+        <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-semibold">
+          Pagada
+        </span>
+      ),
+      pendiente: (
+        <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-semibold">
+          Pendiente
+        </span>
+      ),
+      vencida: (
+        <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-semibold">
+          Vencida
+        </span>
+      ),
+      cancelada: (
+        <span className="px-3 py-1 bg-slate-500/20 text-slate-400 rounded-full text-xs font-semibold">
+          Cancelada
+        </span>
+      ),
+    }
+    return badges[status] || null
+  }
+
+  const stats = [
+    {
+      label: 'Envíos Activos',
+      value: loadingStats ? '...' : dashboardStats?.activeShipments.toString() || '0',
+      change: '+12%',
+      icon: Package,
+      color: 'blue',
+    },
+    {
+      label: 'Ingresos del Mes',
+      value: loadingStats ? '...' : `$${dashboardStats?.monthlyRevenue.toLocaleString() || '0'}`,
+      change: '+18%',
+      icon: DollarSign,
+      color: 'green',
+    },
+    {
+      label: 'Clientes Activos',
+      value: loadingStats ? '...' : dashboardStats?.activeClients.toString() || '0',
+      change: '+8%',
+      icon: Users,
+      color: 'purple',
+    },
+    {
+      label: 'Pendientes',
+      value: loadingStats ? '...' : dashboardStats?.pendingShipments.toString() || '0',
+      change: '-3%',
+      icon: AlertCircle,
+      color: 'orange',
+    },
+  ]
+
+  const filteredClients = clients.filter(
+    (client) =>
+      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.clientId.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const filteredShipments = shipments.filter(
+    (shipment) =>
+      shipment.shipmentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      shipment.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      shipment.trackingNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const filteredInvoices = invoices.filter(
+    (invoice) =>
+      invoice.invoiceId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.clientName.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const handleFormSuccess = () => {
+    refetchClients()
+    refetchShipments()
+    refetchInvoices()
   }
 
   return (
@@ -181,7 +214,7 @@ export default function MainDashboard() {
                   <span className="font-display font-bold text-lg gradient-text">
                     HoyMismo
                   </span>
-                  <p className="text-xs text-slate-400">Dashboard Principal</p>
+                  <p className="text-xs text-slate-400">Dashboard CRM</p>
                 </div>
               </Link>
             </div>
@@ -222,6 +255,7 @@ export default function MainDashboard() {
                 onClick={() => {
                   setActiveSection(item.id)
                   setSidebarOpen(false)
+                  setSearchTerm('')
                 }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                   activeSection === item.id
@@ -276,42 +310,62 @@ export default function MainDashboard() {
                       <h3 className="text-xl font-bold text-white">
                         Envíos Recientes
                       </h3>
-                      <button className="text-primary-400 hover:text-primary-300 text-sm font-semibold">
+                      <button
+                        onClick={() => setActiveSection('shipments')}
+                        className="text-primary-400 hover:text-primary-300 text-sm font-semibold"
+                      >
                         Ver Todos
                       </button>
                     </div>
-                    <div className="space-y-4">
-                      {recentShipments.map((shipment) => (
-                        <div
-                          key={shipment.id}
-                          className="p-4 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                    {loadingShipments ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+                      </div>
+                    ) : shipments.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Package className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                        <p className="text-slate-400 mb-4">No hay envíos todavía</p>
+                        <button
+                          onClick={() => setShowShipmentForm(true)}
+                          className="btn-primary"
                         >
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="font-mono text-sm text-primary-400">
-                                {shipment.id}
-                              </p>
-                              <p className="text-white font-semibold">
-                                {shipment.client}
+                          Crear Primer Envío
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {shipments.slice(0, 3).map((shipment) => (
+                          <div
+                            key={shipment.id}
+                            className="p-4 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <p className="font-mono text-sm text-primary-400">
+                                  {shipment.shipmentId}
+                                </p>
+                                <p className="text-white font-semibold">
+                                  {shipment.clientName}
+                                </p>
+                              </div>
+                              <p className="font-semibold text-white">
+                                ${shipment.totalCost.toFixed(2)}
                               </p>
                             </div>
-                            <p className="font-semibold text-white">
-                              {shipment.value}
-                            </p>
+                            <div className="flex items-center text-xs text-slate-400 mb-2">
+                              <MapPin className="w-3 h-3 mr-1" />
+                              {shipment.origin.city}, {shipment.origin.state} → {shipment.destination.city}, {shipment.destination.state}
+                            </div>
+                            <div className="flex items-center justify-between">
+                              {getStatusBadge(shipment.status)}
+                              <span className="text-xs text-slate-500">
+                                {shipment.createdAt.toDate().toLocaleDateString()}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center text-xs text-slate-400 mb-2">
-                            <MapPin className="w-3 h-3 mr-1" />
-                            {shipment.origin} → {shipment.destination}
-                          </div>
-                          <div className="flex items-center justify-between">
-                            {getStatusBadge(shipment.status)}
-                            <span className="text-xs text-slate-500">
-                              {shipment.date}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Quick Actions */}
@@ -320,7 +374,10 @@ export default function MainDashboard() {
                       Acciones Rápidas
                     </h3>
                     <div className="space-y-3">
-                      <button className="w-full flex items-center justify-between p-4 bg-primary-500/10 hover:bg-primary-500/20 border border-primary-500/30 rounded-lg transition-colors group">
+                      <button
+                        onClick={() => setShowShipmentForm(true)}
+                        className="w-full flex items-center justify-between p-4 bg-primary-500/10 hover:bg-primary-500/20 border border-primary-500/30 rounded-lg transition-colors group"
+                      >
                         <div className="flex items-center space-x-3">
                           <Plus className="w-5 h-5 text-primary-400" />
                           <span className="text-white font-semibold">
@@ -329,7 +386,10 @@ export default function MainDashboard() {
                         </div>
                         <span className="text-primary-400">→</span>
                       </button>
-                      <button className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
+                      <button
+                        onClick={() => setShowClientForm(true)}
+                        className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors"
+                      >
                         <div className="flex items-center space-x-3">
                           <Users className="w-5 h-5 text-slate-400" />
                           <span className="text-white font-semibold">
@@ -338,7 +398,10 @@ export default function MainDashboard() {
                         </div>
                         <span className="text-slate-400">→</span>
                       </button>
-                      <button className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
+                      <button
+                        onClick={() => setShowInvoiceForm(true)}
+                        className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors"
+                      >
                         <div className="flex items-center space-x-3">
                           <FileText className="w-5 h-5 text-slate-400" />
                           <span className="text-white font-semibold">
@@ -347,7 +410,10 @@ export default function MainDashboard() {
                         </div>
                         <span className="text-slate-400">→</span>
                       </button>
-                      <button className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors">
+                      <button
+                        onClick={() => setActiveSection('reports')}
+                        className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors"
+                      >
                         <div className="flex items-center space-x-3">
                           <BarChart3 className="w-5 h-5 text-slate-400" />
                           <span className="text-white font-semibold">
@@ -375,89 +441,126 @@ export default function MainDashboard() {
                       <input
                         type="text"
                         placeholder="Buscar envío..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
                       />
                     </div>
                     <button className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
                       <Filter className="w-5 h-5 text-slate-400" />
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 btn-primary">
+                    <button
+                      onClick={() => setShowShipmentForm(true)}
+                      className="flex items-center gap-2 px-4 py-2 btn-primary"
+                    >
                       <Plus className="w-4 h-4" />
                       Nuevo
                     </button>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-slate-700">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                          ID
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                          Cliente
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                          Ruta
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                          Estado
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                          Valor
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                          Acciones
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentShipments.map((shipment) => (
-                        <tr
-                          key={shipment.id}
-                          className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
-                        >
-                          <td className="py-4 px-4">
-                            <p className="font-mono text-sm text-white">
-                              {shipment.id}
-                            </p>
-                          </td>
-                          <td className="py-4 px-4 text-sm text-white">
-                            {shipment.client}
-                          </td>
-                          <td className="py-4 px-4">
-                            <p className="text-sm text-white">
-                              {shipment.origin}
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              → {shipment.destination}
-                            </p>
-                          </td>
-                          <td className="py-4 px-4">
-                            {getStatusBadge(shipment.status)}
-                          </td>
-                          <td className="py-4 px-4 text-sm font-semibold text-white">
-                            {shipment.value}
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              <button className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors">
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors">
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
+                {loadingShipments ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+                  </div>
+                ) : filteredShipments.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Package className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      {searchTerm ? 'No se encontraron envíos' : 'No hay envíos todavía'}
+                    </h3>
+                    <p className="text-slate-400 mb-6">
+                      {searchTerm
+                        ? 'Intenta con otro término de búsqueda'
+                        : 'Crea tu primer envío para comenzar'}
+                    </p>
+                    {!searchTerm && (
+                      <button
+                        onClick={() => setShowShipmentForm(true)}
+                        className="btn-primary"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Crear Envío
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-700">
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            ID
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            Cliente
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            Ruta
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            Estado
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            Valor
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            Acciones
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {filteredShipments.map((shipment) => (
+                          <tr
+                            key={shipment.id}
+                            className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
+                          >
+                            <td className="py-4 px-4">
+                              <p className="font-mono text-sm text-white">
+                                {shipment.shipmentId}
+                              </p>
+                              {shipment.trackingNumber && (
+                                <p className="text-xs text-slate-500">
+                                  {shipment.trackingNumber}
+                                </p>
+                              )}
+                            </td>
+                            <td className="py-4 px-4 text-sm text-white">
+                              {shipment.clientName}
+                            </td>
+                            <td className="py-4 px-4">
+                              <p className="text-sm text-white">
+                                {shipment.origin.city}, {shipment.origin.state}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                → {shipment.destination.city}, {shipment.destination.state}
+                              </p>
+                            </td>
+                            <td className="py-4 px-4">
+                              {getStatusBadge(shipment.status)}
+                            </td>
+                            <td className="py-4 px-4 text-sm font-semibold text-white">
+                              ${shipment.totalCost.toFixed(2)}
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                <button className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors">
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors">
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 
@@ -468,84 +571,316 @@ export default function MainDashboard() {
                   <h2 className="text-2xl font-bold text-white">
                     Gestión de Clientes
                   </h2>
-                  <button className="flex items-center gap-2 px-4 py-2 btn-primary">
-                    <Plus className="w-4 h-4" />
-                    Nuevo Cliente
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar cliente..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setShowClientForm(true)}
+                      className="flex items-center gap-2 px-4 py-2 btn-primary"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Nuevo Cliente
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid gap-4">
-                  {clients.map((client) => (
-                    <div
-                      key={client.id}
-                      className="p-6 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-white">
-                              {client.name}
-                            </h3>
-                            <span className="px-2 py-1 bg-primary-500/20 text-primary-400 rounded text-xs font-mono">
-                              {client.id}
-                            </span>
+                {loadingClients ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+                  </div>
+                ) : filteredClients.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      {searchTerm ? 'No se encontraron clientes' : 'No hay clientes todavía'}
+                    </h3>
+                    <p className="text-slate-400 mb-6">
+                      {searchTerm
+                        ? 'Intenta con otro término de búsqueda'
+                        : 'Registra tu primer cliente para comenzar'}
+                    </p>
+                    {!searchTerm && (
+                      <button
+                        onClick={() => setShowClientForm(true)}
+                        className="btn-primary"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Registrar Cliente
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {filteredClients.map((client) => (
+                      <div
+                        key={client.id}
+                        className="p-6 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold text-white">
+                                {client.name}
+                              </h3>
+                              <span className="px-2 py-1 bg-primary-500/20 text-primary-400 rounded text-xs font-mono">
+                                {client.clientId}
+                              </span>
+                              {client.type === 'empresa' && (
+                                <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
+                                  Empresa
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid sm:grid-cols-2 gap-3">
+                              <div className="flex items-center text-sm text-slate-400">
+                                <Mail className="w-4 h-4 mr-2" />
+                                {client.email}
+                              </div>
+                              <div className="flex items-center text-sm text-slate-400">
+                                <Phone className="w-4 h-4 mr-2" />
+                                {client.phone}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-6 mt-3">
+                              <div>
+                                <p className="text-xs text-slate-500">
+                                  Total Envíos
+                                </p>
+                                <p className="text-white font-semibold">
+                                  {client.totalShipments}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-slate-500">
+                                  Total Gastado
+                                </p>
+                                <p className="text-white font-semibold">
+                                  ${client.totalSpent.toFixed(2)}
+                                </p>
+                              </div>
+                              {client.lastShipmentDate && (
+                                <div>
+                                  <p className="text-xs text-slate-500">
+                                    Último Envío
+                                  </p>
+                                  <p className="text-white font-semibold">
+                                    {client.lastShipmentDate.toDate().toLocaleDateString()}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="grid sm:grid-cols-2 gap-3">
-                            <div className="flex items-center text-sm text-slate-400">
-                              <Mail className="w-4 h-4 mr-2" />
-                              {client.email}
-                            </div>
-                            <div className="flex items-center text-sm text-slate-400">
-                              <Phone className="w-4 h-4 mr-2" />
-                              {client.phone}
-                            </div>
+                          <div className="flex gap-2">
+                            <button className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors">
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors">
+                              <Edit className="w-4 h-4" />
+                            </button>
                           </div>
-                          <div className="flex items-center gap-6 mt-3">
-                            <div>
-                              <p className="text-xs text-slate-500">
-                                Total Envíos
-                              </p>
-                              <p className="text-white font-semibold">
-                                {client.totalShipments}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-slate-500">
-                                Último Envío
-                              </p>
-                              <p className="text-white font-semibold">
-                                {client.lastShipment}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors">
-                            <Edit className="w-4 h-4" />
-                          </button>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Invoices Section - Continuará en el siguiente mensaje */}
+            {activeSection === 'invoices' && (
+              <div className="card-gradient p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+                  <h2 className="text-2xl font-bold text-white">
+                    Gestión de Facturación
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar factura..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                      />
                     </div>
-                  ))}
+                    <button
+                      onClick={() => setShowInvoiceForm(true)}
+                      className="flex items-center gap-2 px-4 py-2 btn-primary"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Nueva Factura
+                    </button>
+                  </div>
+                </div>
+
+                {loadingInvoices ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+                  </div>
+                ) : filteredInvoices.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      {searchTerm ? 'No se encontraron facturas' : 'No hay facturas todavía'}
+                    </h3>
+                    <p className="text-slate-400 mb-6">
+                      {searchTerm
+                        ? 'Intenta con otro término de búsqueda'
+                        : 'Crea tu primera factura para comenzar'}
+                    </p>
+                    {!searchTerm && (
+                      <button
+                        onClick={() => setShowInvoiceForm(true)}
+                        className="btn-primary"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Crear Factura
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-700">
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            ID Factura
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            Cliente
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            Total
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            Estado
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            Vencimiento
+                          </th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                            Acciones
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredInvoices.map((invoice) => (
+                          <tr
+                            key={invoice.id}
+                            className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
+                          >
+                            <td className="py-4 px-4">
+                              <p className="font-mono text-sm text-white">
+                                {invoice.invoiceId}
+                              </p>
+                            </td>
+                            <td className="py-4 px-4 text-sm text-white">
+                              {invoice.clientName}
+                            </td>
+                            <td className="py-4 px-4">
+                              <p className="text-sm font-semibold text-white">
+                                ${invoice.total.toFixed(2)} {invoice.currency}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {invoice.items.length} item(s)
+                              </p>
+                            </td>
+                            <td className="py-4 px-4">
+                              {getInvoiceStatusBadge(invoice.status)}
+                            </td>
+                            <td className="py-4 px-4">
+                              <p className="text-sm text-white">
+                                {invoice.dueDate.toDate().toLocaleDateString()}
+                              </p>
+                              {invoice.paidDate && (
+                                <p className="text-xs text-green-400">
+                                  Pagada: {invoice.paidDate.toDate().toLocaleDateString()}
+                                </p>
+                              )}
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                <button className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors">
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button className="p-2 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors">
+                                  <Download className="w-4 h-4" />
+                                </button>
+                                <button className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors">
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reports Section */}
+            {activeSection === 'reports' && (
+              <div className="card-gradient p-8 text-center">
+                <BarChart3 className="w-16 h-16 text-primary-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-white mb-4">
+                  Reportes y Análisis
+                </h2>
+                <p className="text-slate-400 mb-6">
+                  Sección de reportes detallados y análisis de métricas.
+                </p>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                  <button className="p-6 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors text-left">
+                    <TrendingUp className="w-8 h-8 text-blue-400 mb-3" />
+                    <h3 className="text-white font-semibold mb-1">Ventas</h3>
+                    <p className="text-sm text-slate-400">Reporte de ingresos</p>
+                  </button>
+                  <button className="p-6 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors text-left">
+                    <Package className="w-8 h-8 text-purple-400 mb-3" />
+                    <h3 className="text-white font-semibold mb-1">Envíos</h3>
+                    <p className="text-sm text-slate-400">Métricas de envíos</p>
+                  </button>
+                  <button className="p-6 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors text-left">
+                    <Users className="w-8 h-8 text-green-400 mb-3" />
+                    <h3 className="text-white font-semibold mb-1">Clientes</h3>
+                    <p className="text-sm text-slate-400">Análisis de clientes</p>
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Other Sections Placeholder */}
-            {(activeSection === 'invoices' ||
-              activeSection === 'reports' ||
-              activeSection === 'settings') && (
+            {/* Settings Section */}
+            {activeSection === 'settings' && (
               <div className="card-gradient p-8 text-center">
+                <Settings className="w-16 h-16 text-primary-500 mx-auto mb-4" />
                 <h2 className="text-2xl font-bold text-white mb-4">
-                  {menuItems.find((item) => item.id === activeSection)?.label}
+                  Configuración del Sistema
                 </h2>
-                <p className="text-slate-400">
-                  Esta sección está en desarrollo y contendrá funcionalidades
-                  avanzadas de gestión.
+                <p className="text-slate-400 mb-6">
+                  Personaliza y configura tu dashboard.
                 </p>
+                <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                  <button className="p-6 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors text-left">
+                    <Users className="w-8 h-8 text-blue-400 mb-3" />
+                    <h3 className="text-white font-semibold mb-1">Usuarios</h3>
+                    <p className="text-sm text-slate-400">Gestión de usuarios</p>
+                  </button>
+                  <button className="p-6 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors text-left">
+                    <Settings className="w-8 h-8 text-purple-400 mb-3" />
+                    <h3 className="text-white font-semibold mb-1">General</h3>
+                    <p className="text-sm text-slate-400">Configuración general</p>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -585,6 +920,37 @@ export default function MainDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Forms Modals */}
+      {showClientForm && (
+        <ClientForm
+          onClose={() => setShowClientForm(false)}
+          onSuccess={() => {
+            handleFormSuccess()
+            setShowClientForm(false)
+          }}
+        />
+      )}
+
+      {showShipmentForm && (
+        <ShipmentForm
+          onClose={() => setShowShipmentForm(false)}
+          onSuccess={() => {
+            handleFormSuccess()
+            setShowShipmentForm(false)
+          }}
+        />
+      )}
+
+      {showInvoiceForm && (
+        <InvoiceForm
+          onClose={() => setShowInvoiceForm(false)}
+          onSuccess={() => {
+            handleFormSuccess()
+            setShowInvoiceForm(false)
+          }}
+        />
       )}
     </div>
   )
