@@ -217,3 +217,63 @@ export interface InvoiceFilters {
   minAmount?: number
   maxAmount?: number
 }
+
+// Roles de usuario
+export type UserRole = 'admin' | 'manager' | 'operator' | 'viewer'
+
+// Usuario del sistema
+export interface User {
+  id: string
+  uid: string // Firebase Auth UID
+  email: string
+  displayName: string
+  role: UserRole
+  phone?: string
+  photoURL?: string
+  department?: string
+  isActive: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  lastLogin?: Timestamp
+  permissions?: string[]
+}
+
+// Configuración de la empresa
+export interface CompanySettings {
+  id: string
+  companyName: string
+  legalName?: string
+  rfc?: string
+  address?: Address
+  phone: string
+  email: string
+  website?: string
+  logo?: string
+  taxRate: number // Tasa de impuesto por defecto
+  currency: string // Moneda por defecto
+  timezone: string
+  language: string
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+
+// Configuración del sistema
+export interface SystemSettings {
+  id: string
+  emailNotifications: boolean
+  smsNotifications: boolean
+  autoInvoicing: boolean
+  invoicePrefix: string
+  shipmentPrefix: string
+  clientPrefix: string
+  lowStockAlert: boolean
+  maintenanceMode: boolean
+  apiKeys?: {
+    deepseek?: string
+    mistral?: string
+    twillio?: string
+    sendgrid?: string
+  }
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}

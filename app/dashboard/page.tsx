@@ -36,7 +36,11 @@ import { useClients, useShipments, useInvoices, useDashboardStats } from '@/lib/
 import ClientForm from '@/components/forms/ClientForm'
 import ShipmentForm from '@/components/forms/ShipmentForm'
 import InvoiceForm from '@/components/forms/InvoiceForm'
-import type { ShipmentStatus, InvoiceStatus } from '@/types/crm'
+import UsersSection from '@/components/sections/UsersSection'
+import SettingsSection from '@/components/sections/SettingsSection'
+import EditClientModal from '@/components/modals/EditClientModal'
+import ShipmentDetailsModal from '@/components/modals/ShipmentDetailsModal'
+import type { ShipmentStatus, InvoiceStatus, Client, Shipment } from '@/types/crm'
 
 export default function MainDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -46,6 +50,8 @@ export default function MainDashboard() {
   const [showShipmentForm, setShowShipmentForm] = useState(false)
   const [showInvoiceForm, setShowInvoiceForm] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null)
 
   // Cargar datos de Firestore
   const { clients, loading: loadingClients, refetch: refetchClients } = useClients()
@@ -59,6 +65,7 @@ export default function MainDashboard() {
     { id: 'clients', label: 'Clientes', icon: Users },
     { id: 'invoices', label: 'Facturación', icon: FileText },
     { id: 'reports', label: 'Reportes', icon: TrendingUp },
+    { id: 'users', label: 'Usuarios', icon: Users },
     { id: 'settings', label: 'Configuración', icon: Settings },
   ]
 
@@ -544,14 +551,12 @@ export default function MainDashboard() {
                             </td>
                             <td className="py-4 px-4">
                               <div className="flex items-center gap-2">
-                                <button className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors">
+                                <button
+                                  onClick={() => setViewingShipment(shipment)}
+                                  className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors"
+                                  title="Ver detalles y cambiar estado"
+                                >
                                   <Eye className="w-4 h-4" />
-                                </button>
-                                <button className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors">
-                                  <Edit className="w-4 h-4" />
-                                </button>
-                                <button className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors">
-                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
                             </td>
@@ -679,10 +684,11 @@ export default function MainDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors">
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors">
+                            <button
+                              onClick={() => setEditingClient(client)}
+                              className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors"
+                              title="Editar cliente"
+                            >
                               <Edit className="w-4 h-4" />
                             </button>
                           </div>
@@ -860,29 +866,10 @@ export default function MainDashboard() {
             )}
 
             {/* Settings Section */}
-            {activeSection === 'settings' && (
-              <div className="card-gradient p-8 text-center">
-                <Settings className="w-16 h-16 text-primary-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-white mb-4">
-                  Configuración del Sistema
-                </h2>
-                <p className="text-slate-400 mb-6">
-                  Personaliza y configura tu dashboard.
-                </p>
-                <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-                  <button className="p-6 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors text-left">
-                    <Users className="w-8 h-8 text-blue-400 mb-3" />
-                    <h3 className="text-white font-semibold mb-1">Usuarios</h3>
-                    <p className="text-sm text-slate-400">Gestión de usuarios</p>
-                  </button>
-                  <button className="p-6 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors text-left">
-                    <Settings className="w-8 h-8 text-purple-400 mb-3" />
-                    <h3 className="text-white font-semibold mb-1">General</h3>
-                    <p className="text-sm text-slate-400">Configuración general</p>
-                  </button>
-                </div>
-              </div>
-            )}
+            {activeSection === 'settings' && <SettingsSection />}
+
+            {/* Users Section */}
+            {activeSection === 'users' && <UsersSection />}
           </div>
         </main>
       </div>
@@ -949,6 +936,30 @@ export default function MainDashboard() {
           onSuccess={() => {
             handleFormSuccess()
             setShowInvoiceForm(false)
+          }}
+        />
+      )}
+
+      {/* Modal para editar cliente */}
+      {editingClient && (
+        <EditClientModal
+          client={editingClient}
+          onClose={() => setEditingClient(null)}
+          onSuccess={() => {
+            refetchClients()
+            setEditingClient(null)
+          }}
+        />
+      )}
+
+      {/* Modal para ver detalles de envío y cambiar estado */}
+      {viewingShipment && (
+        <ShipmentDetailsModal
+          shipment={viewingShipment}
+          onClose={() => setViewingShipment(null)}
+          onSuccess={() => {
+            refetchShipments()
+            setViewingShipment(null)
           }}
         />
       )}

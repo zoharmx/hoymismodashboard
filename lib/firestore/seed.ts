@@ -10,12 +10,54 @@ import { createClient } from './clients'
 import { createShipment } from './shipments'
 import { createInvoice } from './invoices'
 import { createActivity } from './crm-activities'
+import { createUser } from './users'
+import { initializeDefaultSettings } from './settings'
 import type { Address } from '@/types/crm'
 
 export async function seedDatabase() {
   console.log('🌱 Iniciando seed de la base de datos...')
 
   try {
+    // Inicializar configuraciones por defecto
+    console.log('⚙️ Inicializando configuraciones...')
+    await initializeDefaultSettings()
+
+    // Crear usuarios de ejemplo
+    console.log('👤 Creando usuarios...')
+
+    await createUser({
+      uid: 'admin-001',
+      email: 'admin@hoymismo.com',
+      displayName: 'Administrador Principal',
+      role: 'admin',
+      phone: '+1 (346) 555-0100',
+      department: 'Administración',
+      isActive: true,
+    })
+    console.log('✓ Usuario Admin creado')
+
+    await createUser({
+      uid: 'manager-001',
+      email: 'manager@hoymismo.com',
+      displayName: 'Carlos Manager',
+      role: 'manager',
+      phone: '+1 (346) 555-0101',
+      department: 'Operaciones',
+      isActive: true,
+    })
+    console.log('✓ Usuario Manager creado')
+
+    await createUser({
+      uid: 'operator-001',
+      email: 'operator@hoymismo.com',
+      displayName: 'Ana Operador',
+      role: 'operator',
+      phone: '+1 (346) 555-0102',
+      department: 'Logística',
+      isActive: true,
+    })
+    console.log('✓ Usuario Operador creado')
+
     // Crear clientes de ejemplo
     console.log('👥 Creando clientes...')
 
@@ -331,12 +373,15 @@ export async function seedDatabase() {
     console.log('✅ Seed completado exitosamente!')
     console.log('')
     console.log('Resumen:')
+    console.log('- Configuraciones inicializadas')
+    console.log('- 3 usuarios creados')
     console.log('- 3 clientes creados')
     console.log('- 4 envíos creados')
     console.log('- 3 facturas creadas')
     console.log('- 4 actividades CRM creadas')
     console.log('')
     console.log('Puedes ver los datos en Firebase Console o en el dashboard.')
+    console.log('Dashboard: http://localhost:3000/dashboard')
   } catch (error) {
     console.error('❌ Error durante el seed:', error)
     throw error

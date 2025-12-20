@@ -10,7 +10,14 @@
       "Bash(git rm:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(firebase:*)",
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(Get-Process -Name node -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object Id, ProcessName, StartTime)",
+      "Bash(netstat:*)",
+      "Bash(cmd /c dir /B componentsmodals*.tsx)"
     ]
   }
 }
