@@ -40,9 +40,13 @@ import UsersSection from '@/components/sections/UsersSection'
 import SettingsSection from '@/components/sections/SettingsSection'
 import EditClientModal from '@/components/modals/EditClientModal'
 import ShipmentDetailsModal from '@/components/modals/ShipmentDetailsModal'
-import type { ShipmentStatus, InvoiceStatus, Client, Shipment } from '@/types/crm'
+import InvoiceDetailsModal from '@/components/modals/InvoiceDetailsModal'
+import ProtectedRoute from '@/components/ProtectedRoute'
+import { useAuth } from '@/contexts/AuthContext'
+import type { ShipmentStatus, InvoiceStatus, Client, Shipment, Invoice } from '@/types/crm'
 
-export default function MainDashboard() {
+function DashboardContent() {
+  const { user, signOut } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('overview')
   const [showAIAssistant, setShowAIAssistant] = useState(false)
@@ -52,6 +56,7 @@ export default function MainDashboard() {
   const [searchTerm, setSearchTerm] = useState('')
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null)
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null)
 
   // Cargar datos de Firestore
   const { clients, loading: loadingClients, refetch: refetchClients } = useClients()
@@ -59,15 +64,29 @@ export default function MainDashboard() {
   const { invoices, loading: loadingInvoices, refetch: refetchInvoices } = useInvoices()
   const { stats: dashboardStats, loading: loadingStats } = useDashboardStats()
 
-  const menuItems = [
-    { id: 'overview', label: 'Dashboard', icon: BarChart3 },
-    { id: 'shipments', label: 'Envíos', icon: Package },
-    { id: 'clients', label: 'Clientes', icon: Users },
-    { id: 'invoices', label: 'Facturación', icon: FileText },
-    { id: 'reports', label: 'Reportes', icon: TrendingUp },
-    { id: 'users', label: 'Usuarios', icon: Users },
-    { id: 'settings', label: 'Configuración', icon: Settings },
+  // Filtrar menú según rol del usuario
+  const allMenuItems = [
+    { id: 'overview', label: 'Dashboard', icon: BarChart3, requiredRole: null },
+    { id: 'shipments', label: 'Envíos', icon: Package, requiredRole: null },
+    { id: 'clients', label: 'Clientes', icon: Users, requiredRole: null },
+    { id: 'invoices', label: 'Facturación', icon: FileText, requiredRole: 'operator' },
+    { id: 'reports', label: 'Reportes', icon: TrendingUp, requiredRole: 'manager' },
+    { id: 'users', label: 'Usuarios', icon: Users, requiredRole: 'admin' },
+    { id: 'settings', label: 'Configuración', icon: Settings, requiredRole: 'admin' },
   ]
+
+  const menuItems = allMenuItems.filter(item => {
+    if (!item.requiredRole) return true
+
+    const roleHierarchy = {
+      viewer: 1,
+      operator: 2,
+      manager: 3,
+      admin: 4
+    }
+
+    return roleHierarchy[user?.role || 'viewer'] >= roleHierarchy[item.requiredRole]
+  })
 
   const getStatusBadge = (status: ShipmentStatus) => {
     const badges: Record<ShipmentStatus, JSX.Element> = {
@@ -236,11 +255,15 @@ export default function MainDashboard() {
               </button>
               <div className="hidden md:block text-right">
                 <p className="text-sm font-semibold text-white">
-                  Admin Usuario
+                  {user?.displayName || 'Usuario'}
                 </p>
-                <p className="text-xs text-slate-400">Administrador</p>
+                <p className="text-xs text-slate-400 capitalize">{user?.role || 'viewer'}</p>
               </div>
-              <button className="p-2 text-slate-400 hover:text-white transition-colors">
+              <button
+                onClick={signOut}
+                className="p-2 text-slate-400 hover:text-white transition-colors"
+                title="Cerrar sesión"
+              >
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
@@ -589,7 +612,9 @@ export default function MainDashboard() {
                     </div>
                     <button
                       onClick={() => setShowClientForm(true)}
-                      className="flex items-center gap-2 px-4 py-2 btn-primary"
+                      disabled={user?.role === 'viewer'}
+                      className="flex items-center gap-2 px-4 py-2 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={user?.role === 'viewer' ? 'No tienes permisos para crear clientes' : 'Nuevo cliente'}
                     >
                       <Plus className="w-4 h-4" />
                       Nuevo Cliente
@@ -686,8 +711,9 @@ export default function MainDashboard() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => setEditingClient(client)}
-                              className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors"
-                              title="Editar cliente"
+                              disabled={user?.role === 'viewer'}
+                              className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title={user?.role === 'viewer' ? 'No tienes permisos para editar' : 'Editar cliente'}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
@@ -821,8 +847,12 @@ export default function MainDashboard() {
                                 <button className="p-2 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors">
                                   <Download className="w-4 h-4" />
                                 </button>
-                                <button className="p-2 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors">
-                                  <Edit className="w-4 h-4" />
+                                <button
+                                  onClick={() => setViewingInvoice(invoice)}
+                                  className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors"
+                                  title="Ver detalles"
+                                >
+                                  <Eye className="w-4 h-4" />
                                 </button>
                               </div>
                             </td>
@@ -963,6 +993,26 @@ export default function MainDashboard() {
           }}
         />
       )}
+
+      {/* Modal para ver detalles de factura */}
+      {viewingInvoice && (
+        <InvoiceDetailsModal
+          invoice={viewingInvoice}
+          onClose={() => setViewingInvoice(null)}
+          onSuccess={() => {
+            refetchInvoices()
+            setViewingInvoice(null)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+export default function MainDashboard() {
+  return (
+    <ProtectedRoute>
+      <DashboardContent />
+    </ProtectedRoute>
   )
 }

@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { Inter, Poppins, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -83,7 +84,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/HoyMismo Favicon.png" />
       </head>
       <body className="font-body antialiased bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )
