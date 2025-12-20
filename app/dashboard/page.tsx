@@ -38,6 +38,7 @@ import ShipmentForm from '@/components/forms/ShipmentForm'
 import InvoiceForm from '@/components/forms/InvoiceForm'
 import UsersSection from '@/components/sections/UsersSection'
 import SettingsSection from '@/components/sections/SettingsSection'
+import ReportsSection from '@/components/sections/ReportsSection'
 import EditClientModal from '@/components/modals/EditClientModal'
 import ShipmentDetailsModal from '@/components/modals/ShipmentDetailsModal'
 import InvoiceDetailsModal from '@/components/modals/InvoiceDetailsModal'
@@ -85,7 +86,10 @@ function DashboardContent() {
       admin: 4
     }
 
-    return roleHierarchy[user?.role || 'viewer'] >= roleHierarchy[item.requiredRole]
+    return (
+      roleHierarchy[user?.role as keyof typeof roleHierarchy || 'viewer'] >=
+      roleHierarchy[item.requiredRole as keyof typeof roleHierarchy]
+    )
   })
 
   const getStatusBadge = (status: ShipmentStatus) => {
@@ -867,32 +871,11 @@ function DashboardContent() {
 
             {/* Reports Section */}
             {activeSection === 'reports' && (
-              <div className="card-gradient p-8 text-center">
-                <BarChart3 className="w-16 h-16 text-primary-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-white mb-4">
-                  Reportes y Análisis
-                </h2>
-                <p className="text-slate-400 mb-6">
-                  Sección de reportes detallados y análisis de métricas.
-                </p>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-                  <button className="p-6 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors text-left">
-                    <TrendingUp className="w-8 h-8 text-blue-400 mb-3" />
-                    <h3 className="text-white font-semibold mb-1">Ventas</h3>
-                    <p className="text-sm text-slate-400">Reporte de ingresos</p>
-                  </button>
-                  <button className="p-6 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors text-left">
-                    <Package className="w-8 h-8 text-purple-400 mb-3" />
-                    <h3 className="text-white font-semibold mb-1">Envíos</h3>
-                    <p className="text-sm text-slate-400">Métricas de envíos</p>
-                  </button>
-                  <button className="p-6 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors text-left">
-                    <Users className="w-8 h-8 text-green-400 mb-3" />
-                    <h3 className="text-white font-semibold mb-1">Clientes</h3>
-                    <p className="text-sm text-slate-400">Análisis de clientes</p>
-                  </button>
-                </div>
-              </div>
+              <ReportsSection
+                clients={clients}
+                shipments={shipments}
+                invoices={invoices}
+              />
             )}
 
             {/* Settings Section */}
