@@ -40,6 +40,7 @@ import UsersSection from '@/components/sections/UsersSection'
 import SettingsSection from '@/components/sections/SettingsSection'
 import ReportsSection from '@/components/sections/ReportsSection'
 import EditClientModal from '@/components/modals/EditClientModal'
+import ClientDetailsModal from '@/components/modals/ClientDetailsModal'
 import ShipmentDetailsModal from '@/components/modals/ShipmentDetailsModal'
 import InvoiceDetailsModal from '@/components/modals/InvoiceDetailsModal'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -55,7 +56,11 @@ function DashboardContent() {
   const [showShipmentForm, setShowShipmentForm] = useState(false)
   const [showInvoiceForm, setShowInvoiceForm] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [clientTypeFilter, setClientTypeFilter] = useState<'all' | 'individual' | 'empresa'>('all')
+  const [clientStatusFilter, setClientStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [clientSortBy, setClientSortBy] = useState<'name' | 'date' | 'spending'>('name')
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [viewingClient, setViewingClient] = useState<Client | null>(null)
   const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null)
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null)
 
@@ -190,12 +195,38 @@ function DashboardContent() {
     },
   ]
 
-  const filteredClients = clients.filter(
-    (client) =>
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.clientId.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredClients = clients
+    .filter((client) => {
+      // Filtro de búsqueda
+      const matchesSearch =
+        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.clientId.toLowerCase().includes(searchTerm.toLowerCase())
+
+      // Filtro de tipo
+      const matchesType =
+        clientTypeFilter === 'all' || client.type === clientTypeFilter
+
+      // Filtro de estado
+      const matchesStatus =
+        clientStatusFilter === 'all' ||
+        (clientStatusFilter === 'active' && client.isActive) ||
+        (clientStatusFilter === 'inactive' && !client.isActive)
+
+      return matchesSearch && matchesType && matchesStatus
+    })
+    .sort((a, b) => {
+      switch (clientSortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name)
+        case 'date':
+          return b.createdAt.toMillis() - a.createdAt.toMillis()
+        case 'spending':
+          return (b.totalSpent || 0) - (a.totalSpent || 0)
+        default:
+          return 0
+      }
+    })
 
   const filteredShipments = shipments.filter(
     (shipment) =>
@@ -599,30 +630,126 @@ function DashboardContent() {
             {/* Clients Section */}
             {activeSection === 'clients' && (
               <div className="card-gradient p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                  <h2 className="text-2xl font-bold text-white">
-                    Gestión de Clientes
-                  </h2>
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
+                <div className="space-y-4 mb-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <h2 className="text-2xl font-bold text-white">
+                      Gestión de Clientes
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          // Exportar clientes a CSV
+                          const headers = ['ID', 'Nombre', 'Email', 'Teléfono', 'Tipo', 'Empresa', 'RFC', 'Dirección', 'Ciudad', 'Estado', 'CP', 'País', 'Total Envíos', 'Total Gastado', 'Estado', 'Etiquetas', 'Fecha Registro']
+                          const rows = filteredClients.map(client => [
+                            client.clientId,
+                            client.name,
+                            client.email,
+                            client.phone,
+                            client.type,
+                            client.company || '',
+                            client.rfc || '',
+                            client.address.street,
+                            client.address.city,
+                            client.address.state,
+                            client.address.zipCode,
+                            client.address.country,
+                            client.totalShipments || 0,
+                            (client.totalSpent || 0).toFixed(2),
+                            client.isActive ? 'Activo' : 'Inactivo',
+                            client.tags?.join('; ') || '',
+                            client.createdAt.toDate().toLocaleDateString()
+                          ])
+
+                          const csvContent = [
+                            headers.join(','),
+                            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                          ].join('\n')
+
+                          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+                          const link = document.createElement('a')
+                          link.href = URL.createObjectURL(blob)
+                          link.download = `clientes_${new Date().toISOString().split('T')[0]}.csv`
+                          link.click()
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors"
+                        title="Exportar clientes a CSV"
+                      >
+                        <Download className="w-4 h-4" />
+                        Exportar
+                      </button>
+                      <button
+                        onClick={() => setShowClientForm(true)}
+                        disabled={user?.role === 'viewer'}
+                        className="flex items-center gap-2 px-4 py-2 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={user?.role === 'viewer' ? 'No tienes permisos para crear clientes' : 'Nuevo cliente'}
+                      >
+                        <Plus className="w-4 h-4" />
+                        Nuevo Cliente
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Filtros y búsqueda */}
+                  <div className="flex flex-col lg:flex-row gap-3">
+                    <div className="relative flex-1">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
-                        placeholder="Buscar cliente..."
+                        placeholder="Buscar por nombre, email o ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                        className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
                       />
                     </div>
-                    <button
-                      onClick={() => setShowClientForm(true)}
-                      disabled={user?.role === 'viewer'}
-                      className="flex items-center gap-2 px-4 py-2 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={user?.role === 'viewer' ? 'No tienes permisos para crear clientes' : 'Nuevo cliente'}
+
+                    <select
+                      value={clientTypeFilter}
+                      onChange={(e) => setClientTypeFilter(e.target.value as 'all' | 'individual' | 'empresa')}
+                      className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
                     >
-                      <Plus className="w-4 h-4" />
-                      Nuevo Cliente
-                    </button>
+                      <option value="all">Todos los tipos</option>
+                      <option value="individual">Individual</option>
+                      <option value="empresa">Empresa</option>
+                    </select>
+
+                    <select
+                      value={clientStatusFilter}
+                      onChange={(e) => setClientStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                      className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                    >
+                      <option value="all">Todos los estados</option>
+                      <option value="active">Activos</option>
+                      <option value="inactive">Inactivos</option>
+                    </select>
+
+                    <select
+                      value={clientSortBy}
+                      onChange={(e) => setClientSortBy(e.target.value as 'name' | 'date' | 'spending')}
+                      className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                    >
+                      <option value="name">Ordenar: Nombre</option>
+                      <option value="date">Ordenar: Más reciente</option>
+                      <option value="spending">Ordenar: Mayor gasto</option>
+                    </select>
+                  </div>
+
+                  {/* Contador de resultados */}
+                  <div className="flex items-center justify-between text-sm">
+                    <p className="text-slate-400">
+                      Mostrando {filteredClients.length} de {clients.length} clientes
+                    </p>
+                    {(clientTypeFilter !== 'all' || clientStatusFilter !== 'all' || searchTerm) && (
+                      <button
+                        onClick={() => {
+                          setSearchTerm('')
+                          setClientTypeFilter('all')
+                          setClientStatusFilter('all')
+                        }}
+                        className="text-primary-400 hover:text-primary-300 text-sm"
+                      >
+                        Limpiar filtros
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -713,6 +840,13 @@ function DashboardContent() {
                             </div>
                           </div>
                           <div className="flex gap-2">
+                            <button
+                              onClick={() => setViewingClient(client)}
+                              className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors"
+                              title="Ver detalles"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => setEditingClient(client)}
                               disabled={user?.role === 'viewer'}
@@ -949,6 +1083,22 @@ function DashboardContent() {
           onSuccess={() => {
             handleFormSuccess()
             setShowInvoiceForm(false)
+          }}
+        />
+      )}
+
+      {/* Modal para ver detalles del cliente */}
+      {viewingClient && (
+        <ClientDetailsModal
+          client={viewingClient}
+          onClose={() => setViewingClient(null)}
+          onSuccess={() => {
+            refetchClients()
+            setViewingClient(null)
+          }}
+          onEdit={(client) => {
+            setViewingClient(null)
+            setEditingClient(client)
           }}
         />
       )}
