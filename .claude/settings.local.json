@@ -17,7 +17,8 @@
       "Bash(Get-Process -Name node -ErrorAction SilentlyContinue)",
       "Bash(Select-Object Id, ProcessName, StartTime)",
       "Bash(netstat:*)",
-      "Bash(cmd /c dir /B componentsmodals*.tsx)"
+      "Bash(cmd /c dir /B componentsmodals*.tsx)",
+      "Bash(npx tsx:*)"
     ]
   }
 }

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mistralai/mistralai": "^1.11.0",
     "firebase": "^12.7.0",
     "framer-motion": "^11.2.10",
     "lucide-react": "^0.395.0",

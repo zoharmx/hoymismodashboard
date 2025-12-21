@@ -19,6 +19,9 @@ import {
   DollarSign,
   Clock,
   Key,
+  Bot,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import type { CompanySettings, SystemSettings } from '@/types/crm'
 
@@ -28,6 +31,12 @@ export default function SettingsSection() {
 
   const [activeTab, setActiveTab] = useState<'company' | 'system'>('company')
   const [saving, setSaving] = useState(false)
+  const [showApiKeys, setShowApiKeys] = useState({
+    mistral: false,
+    deepseek: false,
+    twillio: false,
+    sendgrid: false,
+  })
 
   // Company form
   const [companyForm, setCompanyForm] = useState({
@@ -53,6 +62,12 @@ export default function SettingsSection() {
     clientPrefix: 'CLT',
     lowStockAlert: false,
     maintenanceMode: false,
+    apiKeys: {
+      mistral: '',
+      deepseek: '',
+      twillio: '',
+      sendgrid: '',
+    },
   })
 
   useEffect(() => {
@@ -83,6 +98,12 @@ export default function SettingsSection() {
         clientPrefix: systemSettings.clientPrefix,
         lowStockAlert: systemSettings.lowStockAlert,
         maintenanceMode: systemSettings.maintenanceMode,
+        apiKeys: {
+          mistral: systemSettings.apiKeys?.mistral || '',
+          deepseek: systemSettings.apiKeys?.deepseek || '',
+          twillio: systemSettings.apiKeys?.twillio || '',
+          sendgrid: systemSettings.apiKeys?.sendgrid || '',
+        },
       })
     }
   }, [systemSettings])
@@ -517,6 +538,126 @@ export default function SettingsSection() {
                         }
                         className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-primary-500"
                       />
+                    </div>
+                  </div>
+                </div>
+
+                {/* API Keys */}
+                <div className="p-6 bg-slate-800/50 rounded-lg">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-primary-400" />
+                    API Keys (Asistente IA)
+                  </h3>
+                  <p className="text-sm text-slate-400 mb-4">
+                    Configura las claves API para habilitar el asistente de IA con Mistral y DeepSeek.
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        Mistral AI API Key
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showApiKeys.mistral ? 'text' : 'password'}
+                          value={systemForm.apiKeys.mistral}
+                          onChange={(e) =>
+                            setSystemForm({
+                              ...systemForm,
+                              apiKeys: {
+                                ...systemForm.apiKeys,
+                                mistral: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="sk-..."
+                          className="w-full px-4 py-2 pr-12 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-primary-500 font-mono text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowApiKeys({
+                              ...showApiKeys,
+                              mistral: !showApiKeys.mistral,
+                            })
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                        >
+                          {showApiKeys.mistral ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Obtén tu API key en{' '}
+                        <a
+                          href="https://console.mistral.ai/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-400 hover:underline"
+                        >
+                          console.mistral.ai
+                        </a>
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-white mb-2">
+                        DeepSeek API Key (Alternativa)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showApiKeys.deepseek ? 'text' : 'password'}
+                          value={systemForm.apiKeys.deepseek}
+                          onChange={(e) =>
+                            setSystemForm({
+                              ...systemForm,
+                              apiKeys: {
+                                ...systemForm.apiKeys,
+                                deepseek: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="sk-..."
+                          className="w-full px-4 py-2 pr-12 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-primary-500 font-mono text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowApiKeys({
+                              ...showApiKeys,
+                              deepseek: !showApiKeys.deepseek,
+                            })
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                        >
+                          {showApiKeys.deepseek ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Obtén tu API key en{' '}
+                        <a
+                          href="https://platform.deepseek.com/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-400 hover:underline"
+                        >
+                          platform.deepseek.com
+                        </a>
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-primary-500/10 border border-primary-500/30 rounded-lg">
+                      <p className="text-xs text-primary-400">
+                        💡 El sistema intentará usar Mistral primero. Si Mistral falla o no está
+                        configurado, usará DeepSeek como alternativa. Configura al menos una de las
+                        dos API keys para habilitar el asistente de IA.
+                      </p>
                     </div>
                   </div>
                 </div>

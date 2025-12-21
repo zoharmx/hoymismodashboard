@@ -43,6 +43,7 @@ import EditClientModal from '@/components/modals/EditClientModal'
 import ClientDetailsModal from '@/components/modals/ClientDetailsModal'
 import ShipmentDetailsModal from '@/components/modals/ShipmentDetailsModal'
 import InvoiceDetailsModal from '@/components/modals/InvoiceDetailsModal'
+import AIAssistant from '@/components/AIAssistant'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ShipmentStatus, InvoiceStatus, Client, Shipment, Invoice } from '@/types/crm'
@@ -1021,39 +1022,12 @@ function DashboardContent() {
         </main>
       </div>
 
-      {/* AI Assistant Popup */}
+      {/* AI Assistant Modal */}
       {showAIAssistant && (
-        <div className="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-3rem)] z-50">
-          <div className="card-gradient p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Bot className="w-6 h-6 text-primary-500" />
-                <h3 className="font-semibold text-white">Asistente IA</h3>
-              </div>
-              <button
-                onClick={() => setShowAIAssistant(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div className="p-3 bg-slate-800/50 rounded-lg">
-                <p className="text-sm text-slate-300">
-                  ¡Hola! Soy tu asistente de IA. ¿En qué puedo ayudarte hoy?
-                </p>
-              </div>
-              <input
-                type="text"
-                placeholder="Escribe tu pregunta..."
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
-              />
-              <p className="text-xs text-slate-500">
-                Powered by DeepSeek & Mistral AI
-              </p>
-            </div>
-          </div>
-        </div>
+        <AIAssistant
+          onClose={() => setShowAIAssistant(false)}
+          isModal={true}
+        />
       )}
 
       {/* Forms Modals */}
