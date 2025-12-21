@@ -1,4 +1,4 @@
-import Mistral from '@mistralai/mistralai'
+import { Mistral as MistralSDK } from '@mistralai/mistralai'
 
 export interface MistralMessage {
   role: 'user' | 'assistant' | 'system'
@@ -11,19 +11,19 @@ export interface MistralToolCall {
 }
 
 export class MistralClient {
-  private client: any = null
+  private client: MistralSDK | null = null
   private apiKey: string | null = null
 
   constructor(apiKey?: string) {
     if (apiKey) {
       this.apiKey = apiKey
-      this.client = new Mistral({ apiKey })
+      this.client = new MistralSDK({ apiKey })
     }
   }
 
   setApiKey(apiKey: string) {
     this.apiKey = apiKey
-    this.client = new Mistral({ apiKey })
+    this.client = new MistralSDK({ apiKey })
   }
 
   async chat(
