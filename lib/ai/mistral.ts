@@ -10,10 +10,8 @@ export interface MistralToolCall {
   arguments: any
 }
 
-type MistralInstance = InstanceType<typeof Mistral>
-
 export class MistralClient {
-  private client: MistralInstance | null = null
+  private client: any = null
   private apiKey: string | null = null
 
   constructor(apiKey?: string) {
