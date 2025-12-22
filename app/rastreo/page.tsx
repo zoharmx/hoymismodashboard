@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { Mail, Search, X as XIcon, Sparkles, FileText, Cog, SearchCheck, Flag, Truck, PackageCheck } from 'lucide-react'
+import { Search, X as XIcon, Sparkles, FileText, Cog, SearchCheck, Flag, Truck, PackageCheck } from 'lucide-react'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { Shipment } from '@/types/crm'
@@ -20,7 +21,8 @@ const STATUS_CONFIG = {
 const STATUS_ORDER = ['pendiente', 'en-transito', 'en-aduana', 'en-distribucion', 'entregado'] as const
 
 export default function RastreoPage() {
-  const [email, setEmail] = useState('')
+  const searchParams = useSearchParams()
+  const [trackingId, setTrackingId] = useState('')
   const [loading, setLoading] = useState(false)
   const [shipment, setShipment] = useState<Shipment | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -28,9 +30,47 @@ export default function RastreoPage() {
   const [aiSummary, setAiSummary] = useState('')
   const [generatingAI, setGeneratingAI] = useState(false)
 
-  const handleSearch = async () => {
-    if (!email.trim() || !email.includes('@')) {
-      setError('Por favor, ingrese un correo electrónico válido.')
+  useEffect(() => {
+    const id = searchParams.get('id')
+    if (id) {
+      setTrackingId(id)
+      // Automatically search on mount
+      const autoSearch = async () => {
+        const idToSearch = id.trim().toUpperCase()
+        setLoading(true)
+        setError(null)
+
+        try {
+          const shipmentsRef = collection(db, 'shipments')
+          const q = query(shipmentsRef, where('shipmentId', '==', idToSearch))
+          const querySnapshot = await getDocs(q)
+
+          if (querySnapshot.empty) {
+            setError('No se encontró ningún envío con este número de guía.')
+          } else {
+            const shipments = querySnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            } as Shipment))
+            const latestShipment = shipments.sort((a, b) =>
+              b.createdAt.toMillis() - a.createdAt.toMillis()
+            )[0]
+            setShipment(latestShipment)
+          }
+        } catch (err) {
+          console.error('Error searching shipment:', err)
+          setError('Ocurrió un error al buscar el envío.')
+        } finally {
+          setLoading(false)
+        }
+      }
+      autoSearch()
+    }
+  }, [searchParams])
+
+  const handleSearchWithId = async (id: string) => {
+    if (!id.trim()) {
+      setError('Por favor, ingrese un número de guía válido.')
       return
     }
 
@@ -39,13 +79,13 @@ export default function RastreoPage() {
     setShipment(null)
 
     try {
-      // Search for shipment by client email
+      // Search for shipment by shipmentId
       const shipmentsRef = collection(db, 'shipments')
-      const q = query(shipmentsRef, where('clientEmail', '==', email.trim().toLowerCase()))
+      const q = query(shipmentsRef, where('shipmentId', '==', id.trim().toUpperCase()))
       const querySnapshot = await getDocs(q)
 
       if (querySnapshot.empty) {
-        setError('No se encontró ningún envío asociado a este correo electrónico.')
+        setError('No se encontró ningún envío con este número de guía.')
       } else {
         // Get the most recent shipment
         const shipments = querySnapshot.docs.map(doc => ({
@@ -66,6 +106,10 @@ export default function RastreoPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSearch = () => {
+    handleSearchWithId(trackingId)
   }
 
   const handleGenerateAISummary = async () => {
@@ -124,7 +168,7 @@ export default function RastreoPage() {
   }
 
   const handleClear = () => {
-    setEmail('')
+    setTrackingId('')
     setShipment(null)
     setError(null)
   }
@@ -166,15 +210,15 @@ export default function RastreoPage() {
             <div className="max-w-xl mx-auto">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="w-5 h-5 text-slate-400" />
+                  <Search className="w-5 h-5 text-slate-400" />
                 </div>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  value={trackingId}
+                  onChange={(e) => setTrackingId(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   className="w-full pl-12 pr-4 py-3.5 text-lg text-white bg-slate-900/50 border-2 border-white/10 rounded-xl focus:ring-4 focus:ring-hoymismo-orange/30 focus:border-hoymismo-orange outline-none transition-all duration-300 placeholder:text-slate-500"
-                  placeholder="Ingresa tu correo electrónico..."
+                  placeholder="Ingresa tu número de guía..."
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-4 mt-4">
