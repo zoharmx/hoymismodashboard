@@ -20,7 +20,7 @@ export default function Navigation() {
   const navLinks = [
     { name: 'Inicio', href: '/' },
     { name: 'Servicios', href: '#servicios' },
-    { name: 'Rastreo', href: '#rastreo' },
+    { name: 'Rastreo', href: '/rastreo' },
     { name: 'Cotizar', href: '#cotizar' },
     { name: 'Contacto', href: '#contacto' },
   ]
@@ -38,7 +38,7 @@ export default function Navigation() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
             <Image
-              src="/HoyMismo Logo.png"
+              src="/images/HoyMismo Logo.png"
               alt="HoyMismo Logo"
               width={50}
               height={50}

@@ -29,7 +29,12 @@ module.exports = {
           950: '#020617',
           900: '#0f172a',
           800: '#1e293b',
-        }
+        },
+        // HoyMismo Corporate Colors
+        'hoymismo-orange': '#EA580C',
+        'hoymismo-gold': '#F59E0B',
+        'hoymismo-navy': '#0F172A',
+        'hoymismo-dark': '#1E293B',
       },
       fontFamily: {
         display: ['var(--font-display)'],
@@ -41,7 +46,9 @@ module.exports = {
         'glow': 'glow 2s ease-in-out infinite',
         'slide-up': 'slideUp 0.5s ease-out',
         'fade-in': 'fadeIn 0.6s ease-out',
+        'fade-in-up': 'fadeInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
         'pulse-slow': 'pulse 3s ease-in-out infinite',
+        'pulse-glow': 'pulseGlow 2s infinite',
       },
       keyframes: {
         float: {
@@ -60,6 +67,14 @@ module.exports = {
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
+        },
+        fadeInUp: {
+          'from': { opacity: '0', transform: 'translateY(20px)' },
+          'to': { opacity: '1', transform: 'translateY(0)' },
+        },
+        pulseGlow: {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(234, 88, 12, 0.4)' },
+          '50%': { boxShadow: '0 0 20px 10px rgba(234, 88, 12, 0)' },
         },
       },
     },

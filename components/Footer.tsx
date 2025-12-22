@@ -13,7 +13,7 @@ export default function Footer() {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Image
-                src="/HoyMismo Logo.png"
+                src="/images/HoyMismo Logo.png"
                 alt="HoyMismo Logo"
                 width={50}
                 height={50}
@@ -47,7 +47,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/#rastreo"
+                  href="/rastreo"
                   className="text-slate-400 hover:text-white transition-colors text-sm"
                 >
                   Rastrear Paquete
