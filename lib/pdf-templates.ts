@@ -238,7 +238,7 @@ export function generateShippingLabel(shipment: Shipment, client: Client): strin
         <div class="watermark">${shipment.shipmentId}</div>
         <div class="label-container">
             <div class="header">
-                <img src="/HoyMismo Logo.png" alt="HoyMismo" class="logo">
+                <img src="https://assets.zyrosite.com/m6Lj5RMGlLT19eqJ/logo-hoy-mismo-YD0Bz1op0eizKk6L.png" alt="HoyMismo" class="logo">
                 <div class="company-info">
                     <div class="company-name">HoyMismo Paquetería</div>
                     <div class="company-subtitle">¡Donde envías hoy... Y recibes hoy!</div>
@@ -456,7 +456,7 @@ export function generateInvoicePDF(invoice: Invoice): string {
 </head>
 <body>
     <div class="header">
-        <img src="/HoyMismo Logo.png" alt="HoyMismo" class="logo">
+        <img src="https://assets.zyrosite.com/m6Lj5RMGlLT19eqJ/logo-hoy-mismo-YD0Bz1op0eizKk6L.png" alt="HoyMismo" class="logo">
         <div class="company">
             <div class="company-name">HoyMismo Paquetería</div>
             <div class="company-tagline">Sistema de gestión de paquetería</div>

@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight, Package, Shield, Truck, Globe } from 'lucide-react'
 import CountUp from 'react-countup'
@@ -46,12 +47,32 @@ export default function HeroSection() {
 
       <div className="container-custom relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Hero Image */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+            className="order-1 lg:order-2"
+          >
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+              <Image
+                src="https://assets.zyrosite.com/m6Lj5RMGlLT19eqJ/hoymismo-imagen-social-pNqRHyFDWzMYgEAS.png"
+                alt="HoyMismo Paquetería Internacional"
+                width={800}
+                height={600}
+                className="w-full h-auto"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent" />
+            </div>
+          </motion.div>
+
           {/* Content */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="space-y-8"
+            className="space-y-8 order-2 lg:order-1"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -80,11 +101,11 @@ export default function HeroSection() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="btn-primary group">
+              <a href="#cotizar" className="btn-primary group">
                 <span>Cotizar Envío</span>
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </button>
-              <button className="btn-secondary">Rastrear Paquete</button>
+              </a>
+              <a href="/rastreo" className="btn-secondary">Rastrear Paquete</a>
             </div>
 
             {/* Trust Indicators */}
@@ -100,38 +121,6 @@ export default function HeroSection() {
             </div>
           </motion.div>
 
-          {/* Stats Grid */}
-          <motion.div
-            ref={ref}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="grid grid-cols-2 gap-6"
-          >
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 + index * 0.1 }}
-                className="card-gradient p-6 hover:scale-105 transition-transform duration-300"
-              >
-                <stat.icon className="w-10 h-10 text-primary-500 mb-4" />
-                <div className="space-y-2">
-                  <div className="text-4xl font-bold gradient-text">
-                    {inView && (
-                      <CountUp
-                        end={stat.value}
-                        duration={2.5}
-                        suffix={stat.suffix}
-                      />
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-400">{stat.label}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { useState } from 'react'
@@ -66,14 +67,34 @@ export default function TrackingSection() {
           </p>
         </motion.div>
 
-        <div className="max-w-4xl mx-auto">
-          {/* Search Form */}
+        <div className="grid lg:grid-cols-2 gap-12 items-start max-w-7xl mx-auto">
+          {/* Tracking Image */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
+            initial={{ opacity: 0, x: -20 }}
+            animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ delay: 0.2 }}
-            className="card-gradient p-8 mb-12"
+            className="order-2 lg:order-1"
           >
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+              <Image
+                src="https://assets.zyrosite.com/m6Lj5RMGlLT19eqJ/imagen-4-tTu30dkARYJfQ7I1.png"
+                alt="Rastreo en tiempo real HoyMismo"
+                width={600}
+                height={400}
+                className="w-full h-auto"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent" />
+            </div>
+          </motion.div>
+
+          <div className="order-1 lg:order-2">
+            {/* Search Form */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ delay: 0.2 }}
+              className="card-gradient p-8 mb-12"
+            >
             <form onSubmit={handleTrack} className="flex gap-4">
               <div className="flex-1">
                 <div className="relative">
@@ -291,6 +312,7 @@ export default function TrackingSection() {
               </p>
             </motion.div>
           )}
+          </div>
         </div>
       </div>
     </section>

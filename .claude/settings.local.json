@@ -20,7 +20,8 @@
       "Bash(cmd /c dir /B componentsmodals*.tsx)",
       "Bash(npx tsx:*)",
       "Bash(cat:*)",
-      "Bash(npx next lint:*)"
+      "Bash(npx next lint:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

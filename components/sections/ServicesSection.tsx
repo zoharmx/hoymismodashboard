@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import {
@@ -165,6 +166,42 @@ export default function ServicesSection() {
             </motion.div>
           ))}
         </div>
+
+        {/* Team & Operations Image */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ delay: 0.9 }}
+          className="mt-16 grid lg:grid-cols-2 gap-12 items-center"
+        >
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+            <Image
+              src="https://assets.zyrosite.com/m6Lj5RMGlLT19eqJ/imagen-3-4hGnHIM9rv6xvgmp.png"
+              alt="Equipo HoyMismo"
+              width={600}
+              height={400}
+              className="w-full h-auto"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent" />
+          </div>
+
+          <div>
+            <h3 className="text-3xl font-bold text-white mb-4">Compromiso con la excelencia</h3>
+            <p className="text-lg text-slate-300 mb-6">
+              Nuestro equipo trabaja incansablemente para asegurar que cada envío llegue a tiempo y en perfectas condiciones.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="card-gradient p-4">
+                <p className="text-3xl font-bold gradient-text mb-1">24/7</p>
+                <p className="text-sm text-slate-400">Atención continua</p>
+              </div>
+              <div className="card-gradient p-4">
+                <p className="text-3xl font-bold gradient-text mb-1">100%</p>
+                <p className="text-sm text-slate-400">Satisfacción garantizada</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Social Proof */}
         <motion.div
