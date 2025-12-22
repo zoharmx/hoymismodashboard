@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, MapPin, Package, Calendar, DollarSign, FileText, Printer, Download, Truck } from 'lucide-react'
-import { updateShipmentStatus } from '@/lib/firestore'
-import type { Shipment, ShipmentStatus } from '@/types/crm'
+import { updateShipmentStatus, getClientById } from '@/lib/firestore'
+import { generateShippingLabel } from '@/lib/pdf-templates'
+import type { Shipment, ShipmentStatus, Client } from '@/types/crm'
 
 interface ShipmentDetailsModalProps {
   shipment: Shipment
@@ -14,6 +15,22 @@ interface ShipmentDetailsModalProps {
 export default function ShipmentDetailsModal({ shipment, onClose, onSuccess }: ShipmentDetailsModalProps) {
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [newStatus, setNewStatus] = useState<ShipmentStatus>(shipment.status)
+  const [client, setClient] = useState<Client | null>(null)
+  const [loadingClient, setLoadingClient] = useState(true)
+
+  useEffect(() => {
+    const loadClient = async () => {
+      try {
+        const clientData = await getClientById(shipment.clientId)
+        setClient(clientData)
+      } catch (error) {
+        console.error('Error loading client:', error)
+      } finally {
+        setLoadingClient(false)
+      }
+    }
+    loadClient()
+  }, [shipment.clientId])
 
   const handleUpdateStatus = async () => {
     if (newStatus === shipment.status) {
@@ -42,98 +59,27 @@ export default function ShipmentDetailsModal({ shipment, onClose, onSuccess }: S
   }
 
   const handlePrintLabel = () => {
-    window.print()
+    if (!client) {
+      alert('Cargando información del cliente...')
+      return
+    }
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(generateShippingLabel(shipment, client))
+      printWindow.document.close()
+      printWindow.focus()
+      printWindow.print()
+    }
   }
 
   const handleGeneratePDF = () => {
-    // Abrir en nueva pestaña para generar PDF
+    if (!client) {
+      alert('Cargando información del cliente...')
+      return
+    }
     const printWindow = window.open('', '_blank')
     if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Guía de Envío - ${shipment.shipmentId}</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; }
-              .header { text-align: center; margin-bottom: 30px; }
-              .section { margin-bottom: 20px; border: 1px solid #ddd; padding: 15px; }
-              .label { font-weight: bold; }
-              .barcode { text-align: center; font-size: 24px; font-family: monospace; margin: 20px 0; }
-              table { width: 100%; border-collapse: collapse; }
-              td, th { padding: 8px; border: 1px solid #ddd; text-align: left; }
-              @media print {
-                .no-print { display: none; }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>HoyMismo Paquetería</h1>
-              <h2>Guía de Envío</h2>
-            </div>
-
-            <div class="section">
-              <p class="label">ID de Envío: ${shipment.shipmentId}</p>
-              ${shipment.trackingNumber ? `<p class="label">Tracking: ${shipment.trackingNumber}</p>` : ''}
-              <div class="barcode">||||| ${shipment.shipmentId} |||||</div>
-            </div>
-
-            <div class="section">
-              <h3>Información del Cliente</h3>
-              <p>${shipment.clientName}</p>
-            </div>
-
-            <div class="section">
-              <h3>Origen</h3>
-              <p>${shipment.origin.street}</p>
-              <p>${shipment.origin.city}, ${shipment.origin.state} ${shipment.origin.zipCode}</p>
-              <p>${shipment.origin.country}</p>
-            </div>
-
-            <div class="section">
-              <h3>Destino</h3>
-              <p>${shipment.destination.street}</p>
-              <p>${shipment.destination.city}, ${shipment.destination.state} ${shipment.destination.zipCode}</p>
-              <p>${shipment.destination.country}</p>
-              ${shipment.destination.reference ? `<p>Referencia: ${shipment.destination.reference}</p>` : ''}
-            </div>
-
-            <div class="section">
-              <h3>Detalles del Paquete</h3>
-              <table>
-                <tr><td class="label">Peso:</td><td>${shipment.weight} kg</td></tr>
-                <tr><td class="label">Tipo:</td><td>${shipment.packageType}</td></tr>
-                <tr><td class="label">Descripción:</td><td>${shipment.description}</td></tr>
-                <tr><td class="label">Valor Declarado:</td><td>$${shipment.declaredValue.toFixed(2)}</td></tr>
-                <tr><td class="label">Costo Total:</td><td>$${shipment.totalCost.toFixed(2)} ${shipment.currency}</td></tr>
-              </table>
-            </div>
-
-            ${shipment.specialInstructions ? `
-            <div class="section">
-              <h3>Instrucciones Especiales</h3>
-              <p>${shipment.specialInstructions}</p>
-            </div>
-            ` : ''}
-
-            <div class="section">
-              <p style="text-align: center; margin-top: 40px;">
-                <strong>Firma del Destinatario:</strong> _____________________
-              </p>
-            </div>
-
-            <div class="no-print" style="text-align: center; margin-top: 20px;">
-              <button onclick="window.print()" style="padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                Imprimir / Guardar PDF
-              </button>
-              <button onclick="window.close()" style="padding: 10px 20px; background: #6B7280; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
-                Cerrar
-              </button>
-            </div>
-          </body>
-        </html>
-      `)
+      printWindow.document.write(generateShippingLabel(shipment, client))
       printWindow.document.close()
     }
   }

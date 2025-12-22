@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, FileText, DollarSign, Calendar, Download, CreditCard, Printer } from 'lucide-react'
 import { markInvoiceAsPaid, deleteInvoice } from '@/lib/firestore'
+import { generateInvoicePDF } from '@/lib/pdf-templates'
 import type { Invoice } from '@/types/crm'
 
 interface InvoiceDetailsModalProps {
@@ -52,129 +53,7 @@ export default function InvoiceDetailsModal({ invoice, onClose, onSuccess }: Inv
   const handleGeneratePDF = () => {
     const printWindow = window.open('', '_blank')
     if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Factura ${invoice.invoiceId}</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-              .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #4F46E5; }
-              .company { font-size: 24px; font-weight: bold; color: #4F46E5; }
-              .invoice-info { display: flex; justify-content: space-between; margin: 20px 0; }
-              .section { margin: 20px 0; }
-              .section-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #1e293b; }
-              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-              th, td { padding: 12px; border: 1px solid #e2e8f0; text-align: left; }
-              th { background: #f1f5f9; font-weight: bold; }
-              .total-row { background: #f8fafc; font-weight: bold; }
-              .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-              .status-paid { background: #dcfce7; color: #166534; }
-              .status-pending { background: #fef3c7; color: #854d0e; }
-              .status-overdue { background: #fee2e2; color: #991b1b; }
-              .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; color: #64748b; }
-              @media print { .no-print { display: none; } }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <div class="company">HoyMismo Paquetería</div>
-              <div style="margin-top: 10px; color: #64748b;">Sistema de gestión de paquetería</div>
-            </div>
-
-            <div class="invoice-info">
-              <div>
-                <strong>Factura: ${invoice.invoiceId}</strong><br>
-                Fecha: ${invoice.createdAt.toDate().toLocaleDateString()}<br>
-                Vencimiento: ${invoice.dueDate.toDate().toLocaleDateString()}
-              </div>
-              <div style="text-align: right;">
-                Estado: <span class="status status-${invoice.status === 'pagada' ? 'paid' : invoice.status === 'pendiente' ? 'pending' : 'overdue'}">
-                  ${invoice.status.toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            <div class="section">
-              <div class="section-title">Cliente</div>
-              <strong>${invoice.clientName}</strong>
-            </div>
-
-            <div class="section">
-              <div class="section-title">Detalles de la Factura</div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Descripción</th>
-                    <th style="text-align: center;">Cantidad</th>
-                    <th style="text-align: right;">Precio Unit.</th>
-                    <th style="text-align: right;">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${invoice.items.map(item => `
-                    <tr>
-                      <td>${item.description}</td>
-                      <td style="text-align: center;">${item.quantity}</td>
-                      <td style="text-align: right;">$${item.unitPrice.toFixed(2)}</td>
-                      <td style="text-align: right;">$${item.total.toFixed(2)}</td>
-                    </tr>
-                  `).join('')}
-                  <tr>
-                    <td colspan="3" style="text-align: right;"><strong>Subtotal:</strong></td>
-                    <td style="text-align: right;">$${invoice.subtotal.toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td colspan="3" style="text-align: right;"><strong>Impuestos:</strong></td>
-                    <td style="text-align: right;">$${invoice.tax.toFixed(2)}</td>
-                  </tr>
-                  ${invoice.discount ? `
-                  <tr>
-                    <td colspan="3" style="text-align: right;"><strong>Descuento:</strong></td>
-                    <td style="text-align: right;">-$${invoice.discount.toFixed(2)}</td>
-                  </tr>
-                  ` : ''}
-                  <tr class="total-row">
-                    <td colspan="3" style="text-align: right;"><strong>TOTAL:</strong></td>
-                    <td style="text-align: right; font-size: 18px;">$${invoice.total.toFixed(2)} ${invoice.currency}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            ${invoice.paidDate ? `
-            <div class="section">
-              <div class="section-title">Información de Pago</div>
-              <strong>Fecha de pago:</strong> ${invoice.paidDate.toDate().toLocaleDateString()}<br>
-              ${invoice.paymentMethod ? `<strong>Método:</strong> ${invoice.paymentMethod}<br>` : ''}
-              ${invoice.paymentReference ? `<strong>Referencia:</strong> ${invoice.paymentReference}` : ''}
-            </div>
-            ` : ''}
-
-            ${invoice.notes ? `
-            <div class="section">
-              <div class="section-title">Notas</div>
-              ${invoice.notes}
-            </div>
-            ` : ''}
-
-            <div class="footer">
-              <strong>HoyMismo Paquetería</strong><br>
-              info@hoymismo.com | +1 (346) 555-0100<br>
-              ¡Donde envías hoy... Y recibes hoy!
-            </div>
-
-            <div class="no-print" style="text-align: center; margin-top: 20px;">
-              <button onclick="window.print()" style="padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">
-                Imprimir / Guardar PDF
-              </button>
-              <button onclick="window.close()" style="padding: 10px 20px; background: #6B7280; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                Cerrar
-              </button>
-            </div>
-          </body>
-        </html>
-      `)
+      printWindow.document.write(generateInvoicePDF(invoice))
       printWindow.document.close()
     }
   }
