@@ -16,8 +16,7 @@ import {
   X,
   Facebook,
   Instagram,
-  Star,
-  Clock
+  Star
 } from 'lucide-react'
 
 export default function Home() {
