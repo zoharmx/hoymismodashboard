@@ -10,6 +10,20 @@ export interface MistralToolCall {
   arguments: any
 }
 
+// Helper function to convert content to string
+function contentToString(content: string | any[] | null | undefined): string {
+  if (!content) return ''
+  if (typeof content === 'string') return content
+  if (Array.isArray(content)) {
+    return content.map(chunk => {
+      if (typeof chunk === 'string') return chunk
+      if (chunk.text) return chunk.text
+      return JSON.stringify(chunk)
+    }).join('')
+  }
+  return String(content)
+}
+
 export class MistralClient {
   private client: MistralSDK | null = null
   private apiKey: string | null = null
@@ -61,7 +75,7 @@ export class MistralClient {
       // Check if there are tool calls
       if (message.toolCalls && message.toolCalls.length > 0) {
         return {
-          content: message.content || '',
+          content: contentToString(message.content),
           toolCalls: message.toolCalls.map((tc: any) => ({
             name: tc.function.name,
             arguments: JSON.parse(tc.function.arguments)
@@ -70,7 +84,7 @@ export class MistralClient {
       }
 
       return {
-        content: message.content || 'Lo siento, no pude generar una respuesta.'
+        content: contentToString(message.content) || 'Lo siento, no pude generar una respuesta.'
       }
     } catch (error: any) {
       console.error('Mistral API error:', error)
