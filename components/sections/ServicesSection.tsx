@@ -179,8 +179,8 @@ export default function ServicesSection() {
               CLIENTES SATISFECHOS
             </p>
             <p className="text-sm text-slate-400">
-              "Nuestra confianza es el reflejo de la tranquilidad de nuestros
-              clientes."
+              &quot;Nuestra confianza es el reflejo de la tranquilidad de nuestros
+              clientes.&quot;
             </p>
           </div>
         </motion.div>
