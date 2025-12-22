@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, MapPin, Package, Calendar, DollarSign, FileText, Printer, Download, Truck } from 'lucide-react'
-import { updateShipmentStatus, getClientById } from '@/lib/firestore'
+import { updateShipmentStatus, getClient } from '@/lib/firestore'
 import { generateShippingLabel } from '@/lib/pdf-templates'
 import type { Shipment, ShipmentStatus, Client } from '@/types/crm'
 
@@ -21,7 +21,7 @@ export default function ShipmentDetailsModal({ shipment, onClose, onSuccess }: S
   useEffect(() => {
     const loadClient = async () => {
       try {
-        const clientData = await getClientById(shipment.clientId)
+        const clientData = await getClient(shipment.clientId)
         setClient(clientData)
       } catch (error) {
         console.error('Error loading client:', error)
