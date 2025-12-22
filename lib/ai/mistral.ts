@@ -58,10 +58,21 @@ export class MistralClient {
 
       const message = choice.message
 
+      const extractContent = (content: string | any[] | null | undefined): string => {
+        if (!content) return ''
+        if (typeof content === 'string') return content
+        if (Array.isArray(content)) {
+          return content
+            .map((c: any) => c.text || '')
+            .join('')
+        }
+        return ''
+      }
+
       // Check if there are tool calls
       if (message.toolCalls && message.toolCalls.length > 0) {
         return {
-          content: message.content || '',
+          content: extractContent(message.content),
           toolCalls: message.toolCalls.map((tc: any) => ({
             name: tc.function.name,
             arguments: JSON.parse(tc.function.arguments)
@@ -70,7 +81,7 @@ export class MistralClient {
       }
 
       return {
-        content: message.content || 'Lo siento, no pude generar una respuesta.'
+        content: extractContent(message.content) || 'Lo siento, no pude generar una respuesta.'
       }
     } catch (error: any) {
       console.error('Mistral API error:', error)
