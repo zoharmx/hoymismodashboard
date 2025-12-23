@@ -75,16 +75,13 @@ export default function TrackingSection() {
             transition={{ delay: 0.2 }}
             className="order-2 lg:order-1"
           >
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-              <Image
-                src="https://assets.zyrosite.com/m6Lj5RMGlLT19eqJ/imagen-4-tTu30dkARYJfQ7I1.png"
-                alt="Rastreo en tiempo real HoyMismo"
-                width={600}
-                height={400}
-                className="w-full h-auto"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent" />
-            </div>
+            <Image
+              src="https://assets.zyrosite.com/m6Lj5RMGlLT19eqJ/imagen-4-tTu30dkARYJfQ7I1.png"
+              alt="Rastreo en tiempo real HoyMismo"
+              width={600}
+              height={400}
+              className="w-full h-auto rounded-2xl shadow-2xl"
+            />
           </motion.div>
 
           <div className="order-1 lg:order-2">
@@ -298,20 +295,20 @@ export default function TrackingSection() {
             </motion.div>
           )}
 
-          {/* Empty State */}
-          {!trackingData && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={inView ? { opacity: 1 } : {}}
-              transition={{ delay: 0.4 }}
-              className="text-center py-12"
-            >
-              <Package className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-              <p className="text-slate-400">
-                Ingresa tu número de rastreo para ver el estado de tu envío
-              </p>
-            </motion.div>
-          )}
+            {/* Empty State */}
+            {!trackingData && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={inView ? { opacity: 1 } : {}}
+                transition={{ delay: 0.4 }}
+                className="text-center py-12"
+              >
+                <Package className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                <p className="text-slate-400">
+                  Ingresa tu número de rastreo para ver el estado de tu envío
+                </p>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>

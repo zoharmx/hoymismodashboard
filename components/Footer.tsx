@@ -47,7 +47,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/rastreo"
+                  href="/#rastreo"
                   className="text-slate-400 hover:text-white transition-colors text-sm"
                 >
                   Rastrear Paquete

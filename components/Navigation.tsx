@@ -20,7 +20,7 @@ export default function Navigation() {
   const navLinks = [
     { name: 'Inicio', href: '/' },
     { name: 'Servicios', href: '#servicios' },
-    { name: 'Rastreo', href: '/rastreo' },
+    { name: 'Rastreo', href: '#rastreo' },
     { name: 'Cotizar', href: '#cotizar' },
     { name: 'Contacto', href: '#contacto' },
   ]
