@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getMistralClient } from '@/lib/ai/mistral'
 import { getDeepSeekClient } from '@/lib/ai/deepseek'
 import { tools, executeTool } from '@/lib/ai/tools'
-import { getSystemSettings } from '@/lib/firestore'
 
 export const runtime = 'nodejs'
 
@@ -17,10 +16,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get API keys from system settings
-    const settings = await getSystemSettings()
-    const mistralApiKey = settings?.apiKeys?.mistral
-    const deepseekApiKey = settings?.apiKeys?.deepseek
+    // Get API keys from environment variables
+    const mistralApiKey = process.env.MISTRAL_API_KEY
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY
 
     // System prompt for the AI assistant
     const systemPrompt = {
