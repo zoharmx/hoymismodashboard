@@ -81,11 +81,11 @@ export default function HeroSection() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="btn-primary group">
+              <a href="#cotizar" className="btn-primary group">
                 <span>Cotizar Envío</span>
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </button>
-              <button className="btn-secondary">Rastrear Paquete</button>
+              </a>
+              <a href="#rastreo" className="btn-secondary">Rastrear Paquete</a>
             </div>
 
             {/* Trust Indicators */}
