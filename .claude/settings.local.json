@@ -24,7 +24,9 @@
       "Bash(git checkout:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel ls:*)"
     ]
   }
 }

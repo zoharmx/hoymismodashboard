@@ -78,8 +78,8 @@ function DashboardContent() {
     { id: 'clients', label: 'Clientes', icon: Users, requiredRole: null },
     { id: 'invoices', label: 'Facturación', icon: FileText, requiredRole: 'operator' },
     { id: 'reports', label: 'Reportes', icon: TrendingUp, requiredRole: 'manager' },
+    { id: 'settings', label: 'Configuración', icon: Settings, requiredRole: 'manager' },
     { id: 'users', label: 'Usuarios', icon: Users, requiredRole: 'admin' },
-    { id: 'settings', label: 'Configuración', icon: Settings, requiredRole: 'admin' },
   ]
 
   const menuItems = allMenuItems.filter(item => {
