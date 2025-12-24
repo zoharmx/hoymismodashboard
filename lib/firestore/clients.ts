@@ -88,6 +88,31 @@ export async function getClient(id: string): Promise<Client | null> {
   }
 }
 
+// Obtener cliente por email
+export async function getClientByEmail(email: string): Promise<Client | null> {
+  try {
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where('email', '==', email),
+      limit(1)
+    )
+    const querySnapshot = await getDocs(q)
+
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0]
+      return {
+        id: doc.id,
+        ...doc.data(),
+      } as Client
+    }
+
+    return null
+  } catch (error) {
+    console.error('Error getting client by email:', error)
+    throw error
+  }
+}
+
 // Obtener todos los clientes con filtros
 export async function getClients(
   filters?: ClientFilters,

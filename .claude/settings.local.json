@@ -21,7 +21,10 @@
       "Bash(npx tsx:*)",
       "Bash(cat:*)",
       "Bash(npx next lint:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(cp:*)"
     ]
   }
 }

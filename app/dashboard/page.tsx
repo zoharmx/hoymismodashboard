@@ -267,7 +267,7 @@ function DashboardContent() {
               </button>
               <Link href="/" className="flex items-center space-x-2">
                 <Image
-                  src="/HoyMismo Logo.png"
+                  src="/images/logo.png"
                   alt="HoyMismo"
                   width={40}
                   height={40}

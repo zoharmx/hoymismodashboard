@@ -38,7 +38,7 @@ export default function Navigation() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
             <Image
-              src="https://assets.zyrosite.com/m6Lj5RMGlLT19eqJ/logo-hoy-mismo-YD0Bz1op0eizKk6L.png"
+              src="/images/logo.png"
               alt="HoyMismo Logo"
               width={50}
               height={50}

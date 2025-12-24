@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Package,
   FileText,
@@ -18,82 +19,85 @@ import {
   AlertCircle,
   Menu,
   X,
+  Loader2,
 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { getClientByEmail, getClientShipments, getClientInvoices } from '@/lib/firestore'
+import type { Client, Shipment, Invoice } from '@/types/crm'
 
 export default function PortalDashboard() {
+  const router = useRouter()
+  const { user, signOut } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('shipments')
+  const [loading, setLoading] = useState(true)
+  const [client, setClient] = useState<Client | null>(null)
+  const [shipments, setShipments] = useState<Shipment[]>([])
+  const [invoices, setInvoices] = useState<Invoice[]>([])
 
-  const user = {
-    name: 'Juan Pérez',
-    email: 'juan.perez@ejemplo.com',
-    accountNumber: 'HM-2024-001234',
+  useEffect(() => {
+    if (!user) {
+      router.push('/portal')
+      return
+    }
+    loadClientData()
+  }, [user, router])
+
+  const loadClientData = async () => {
+    if (!user?.email) return
+
+    try {
+      setLoading(true)
+      const clientData = await getClientByEmail(user.email)
+
+      if (!clientData) {
+        alert('No se encontró información del cliente para este usuario')
+        router.push('/portal')
+        return
+      }
+
+      setClient(clientData)
+
+      const [clientShipments, clientInvoices] = await Promise.all([
+        getClientShipments(clientData.id),
+        getClientInvoices(clientData.id)
+      ])
+
+      setShipments(clientShipments)
+      setInvoices(clientInvoices)
+    } catch (error) {
+      console.error('Error loading client data:', error)
+      alert('Error al cargar los datos del cliente')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const shipments = [
-    {
-      id: 'HM-2024-10001',
-      status: 'en-transito',
-      origin: 'Houston, TX',
-      destination: 'Monterrey, MX',
-      estimatedDelivery: '25 Oct 2024',
-      weight: '25 lbs',
-      createdAt: '20 Oct 2024',
-    },
-    {
-      id: 'HM-2024-09998',
-      status: 'entregado',
-      origin: 'Dallas, TX',
-      destination: 'Guadalajara, MX',
-      estimatedDelivery: '18 Oct 2024',
-      weight: '15 lbs',
-      createdAt: '15 Oct 2024',
-    },
-    {
-      id: 'HM-2024-09995',
-      status: 'pendiente',
-      origin: 'Houston, TX',
-      destination: 'CDMX, MX',
-      estimatedDelivery: '28 Oct 2024',
-      weight: '30 lbs',
-      createdAt: '22 Oct 2024',
-    },
-  ]
+  const handleLogout = async () => {
+    await signOut()
+    router.push('/portal')
+  }
 
-  const invoices = [
-    {
-      id: 'INV-2024-0123',
-      date: '20 Oct 2024',
-      amount: 125.5,
-      status: 'pagada',
-      shipmentId: 'HM-2024-10001',
-    },
-    {
-      id: 'INV-2024-0122',
-      date: '15 Oct 2024',
-      amount: 98.0,
-      status: 'pagada',
-      shipmentId: 'HM-2024-09998',
-    },
-    {
-      id: 'INV-2024-0121',
-      date: '22 Oct 2024',
-      amount: 145.75,
-      status: 'pendiente',
-      shipmentId: 'HM-2024-09995',
-    },
-  ]
+  if (loading || !client) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary-500" />
+      </div>
+    )
+  }
+
+  const activeShipments = shipments.filter(s => s.status !== 'entregado' && s.status !== 'cancelado')
+  const pendingInvoices = invoices.filter(i => i.status === 'pendiente')
+  const totalPaid = invoices.filter(i => i.status === 'pagada').reduce((sum, inv) => sum + inv.total, 0)
+  const deliveryRate = shipments.length > 0
+    ? Math.round((shipments.filter(s => s.status === 'entregado').length / shipments.length) * 100)
+    : 0
 
   const stats = [
-    { label: 'Envíos Activos', value: '2', icon: Package, color: 'primary' },
-    { label: 'Total Enviado', value: '24', icon: TrendingUp, color: 'green' },
-    {
-      label: 'Facturas Pendientes',
-      value: '1',
-      icon: FileText,
-      color: 'orange',
-    },
-    { label: 'Tasa de Éxito', value: '100%', icon: CheckCircle2, color: 'green' },
+    { label: 'Envíos Activos', value: activeShipments.length.toString(), icon: Package, color: 'primary' },
+    { label: 'Total Enviado', value: shipments.length.toString(), icon: TrendingUp, color: 'green' },
+    { label: 'Facturas Pendientes', value: pendingInvoices.length.toString(), icon: FileText, color: 'orange' },
+    { label: 'Tasa de Éxito', value: `${deliveryRate}%`, icon: CheckCircle2, color: 'green' },
   ]
 
   const getStatusBadge = (status: string) => {
@@ -144,7 +148,7 @@ export default function PortalDashboard() {
               </button>
               <Link href="/" className="flex items-center space-x-2">
                 <Image
-                  src="/HoyMismo Logo.png"
+                  src="/images/logo.png"
                   alt="HoyMismo"
                   width={40}
                   height={40}
@@ -160,10 +164,14 @@ export default function PortalDashboard() {
 
             <div className="flex items-center space-x-4">
               <div className="hidden md:block text-right">
-                <p className="text-sm font-semibold text-white">{user.name}</p>
-                <p className="text-xs text-slate-400">{user.accountNumber}</p>
+                <p className="text-sm font-semibold text-white">{client.name}</p>
+                <p className="text-xs text-slate-400">{client.clientId}</p>
               </div>
-              <button className="p-2 text-slate-400 hover:text-white transition-colors">
+              <button
+                onClick={handleLogout}
+                className="p-2 text-slate-400 hover:text-white transition-colors"
+                title="Cerrar sesión"
+              >
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
@@ -236,68 +244,90 @@ export default function PortalDashboard() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-slate-700">
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            ID
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Ruta
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Estado
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Peso
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Entrega Est.
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Acciones
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {shipments.map((shipment) => (
-                          <tr
-                            key={shipment.id}
-                            className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
-                          >
-                            <td className="py-4 px-4">
-                              <p className="font-mono text-sm text-white">
-                                {shipment.id}
-                              </p>
-                            </td>
-                            <td className="py-4 px-4">
-                              <p className="text-sm text-white">
-                                {shipment.origin}
-                              </p>
-                              <p className="text-xs text-slate-400">
-                                → {shipment.destination}
-                              </p>
-                            </td>
-                            <td className="py-4 px-4">
-                              {getStatusBadge(shipment.status)}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-slate-300">
-                              {shipment.weight}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-slate-300">
-                              {shipment.estimatedDelivery}
-                            </td>
-                            <td className="py-4 px-4">
-                              <button className="p-2 text-primary-400 hover:bg-primary-500/20 rounded-lg transition-colors">
-                                <Eye className="w-4 h-4" />
-                              </button>
-                            </td>
+                  {shipments.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Package className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-white mb-2">
+                        No hay envíos todavía
+                      </h3>
+                      <p className="text-slate-400">
+                        Tus envíos aparecerán aquí una vez que estén registrados
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-700">
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              ID
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Ruta
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Estado
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Peso
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Entrega Est.
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Acciones
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {shipments.map((shipment) => (
+                            <tr
+                              key={shipment.id}
+                              className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
+                            >
+                              <td className="py-4 px-4">
+                                <p className="font-mono text-sm text-white">
+                                  {shipment.shipmentId}
+                                </p>
+                                {shipment.trackingNumber && (
+                                  <p className="text-xs text-slate-500">
+                                    {shipment.trackingNumber}
+                                  </p>
+                                )}
+                              </td>
+                              <td className="py-4 px-4">
+                                <p className="text-sm text-white">
+                                  {shipment.origin.city}, {shipment.origin.state}
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  → {shipment.destination.city}, {shipment.destination.state}
+                                </p>
+                              </td>
+                              <td className="py-4 px-4">
+                                {getStatusBadge(shipment.status)}
+                              </td>
+                              <td className="py-4 px-4 text-sm text-slate-300">
+                                {shipment.weight} kg
+                              </td>
+                              <td className="py-4 px-4 text-sm text-slate-300">
+                                {shipment.estimatedDelivery
+                                  ? shipment.estimatedDelivery.toDate().toLocaleDateString()
+                                  : 'Por confirmar'}
+                              </td>
+                              <td className="py-4 px-4">
+                                <button
+                                  className="p-2 text-primary-400 hover:bg-primary-500/20 rounded-lg transition-colors"
+                                  title="Ver detalles"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -307,61 +337,76 @@ export default function PortalDashboard() {
                   <h2 className="text-2xl font-bold text-white mb-6">
                     Facturas
                   </h2>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-slate-700">
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Factura
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Fecha
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Envío
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Monto
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Estado
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
-                            Acciones
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invoices.map((invoice) => (
-                          <tr
-                            key={invoice.id}
-                            className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
-                          >
-                            <td className="py-4 px-4 font-mono text-sm text-white">
-                              {invoice.id}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-slate-300">
-                              {invoice.date}
-                            </td>
-                            <td className="py-4 px-4 font-mono text-sm text-slate-300">
-                              {invoice.shipmentId}
-                            </td>
-                            <td className="py-4 px-4 text-sm font-semibold text-white">
-                              ${invoice.amount.toFixed(2)}
-                            </td>
-                            <td className="py-4 px-4">
-                              {getStatusBadge(invoice.status)}
-                            </td>
-                            <td className="py-4 px-4">
-                              <button className="p-2 text-primary-400 hover:bg-primary-500/20 rounded-lg transition-colors">
-                                <Download className="w-4 h-4" />
-                              </button>
-                            </td>
+                  {invoices.length === 0 ? (
+                    <div className="text-center py-12">
+                      <FileText className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-white mb-2">
+                        No hay facturas todavía
+                      </h3>
+                      <p className="text-slate-400">
+                        Tus facturas aparecerán aquí una vez que estén generadas
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-slate-700">
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Factura
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Fecha
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Monto
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Estado
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Vencimiento
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-slate-400">
+                              Acciones
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {invoices.map((invoice) => (
+                            <tr
+                              key={invoice.id}
+                              className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors"
+                            >
+                              <td className="py-4 px-4 font-mono text-sm text-white">
+                                {invoice.invoiceId}
+                              </td>
+                              <td className="py-4 px-4 text-sm text-slate-300">
+                                {invoice.createdAt.toDate().toLocaleDateString()}
+                              </td>
+                              <td className="py-4 px-4 text-sm font-semibold text-white">
+                                ${invoice.total.toFixed(2)} {invoice.currency}
+                              </td>
+                              <td className="py-4 px-4">
+                                {getStatusBadge(invoice.status)}
+                              </td>
+                              <td className="py-4 px-4 text-sm text-slate-300">
+                                {invoice.dueDate.toDate().toLocaleDateString()}
+                              </td>
+                              <td className="py-4 px-4">
+                                <button
+                                  className="p-2 text-primary-400 hover:bg-primary-500/20 rounded-lg transition-colors"
+                                  title="Descargar factura"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -396,7 +441,7 @@ export default function PortalDashboard() {
                           </label>
                           <input
                             type="text"
-                            value={user.name}
+                            value={client.name}
                             className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
                             readOnly
                           />
@@ -407,8 +452,30 @@ export default function PortalDashboard() {
                           </label>
                           <input
                             type="email"
-                            value={user.email}
+                            value={client.email}
                             className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                            readOnly
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-slate-400 mb-2">
+                            Teléfono
+                          </label>
+                          <input
+                            type="tel"
+                            value={client.phone}
+                            className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                            readOnly
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-slate-400 mb-2">
+                            Dirección
+                          </label>
+                          <textarea
+                            value={`${client.address.street}\n${client.address.city}, ${client.address.state} ${client.address.zipCode}\n${client.address.country}`}
+                            className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                            rows={4}
                             readOnly
                           />
                         </div>
