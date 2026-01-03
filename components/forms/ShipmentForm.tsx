@@ -28,6 +28,9 @@ interface ShipmentFormData {
   destZipCode: string
   destCountry: string
   destReference?: string
+  // Destinatario
+  recipientName?: string
+  recipientPhone?: string
   // Paquete
   weight: number
   packageType: string
@@ -119,6 +122,12 @@ export default function ShipmentForm({ onClose, onSuccess }: ShipmentFormProps) 
         clientName: selectedClient.name,
         origin,
         destination,
+        recipient: data.recipientName && data.recipientPhone
+          ? {
+              name: data.recipientName,
+              phone: data.recipientPhone,
+            }
+          : undefined,
         weight: Number(data.weight),
         packageType: data.packageType,
         description: data.description,
@@ -332,6 +341,39 @@ export default function ShipmentForm({ onClose, onSuccess }: ShipmentFormProps) 
                   placeholder="Referencias adicionales"
                 />
               </div>
+            </div>
+
+            {/* Información del Destinatario */}
+            <div className="mt-6 p-4 bg-primary-500/5 border border-primary-500/20 rounded-lg">
+              <h4 className="text-sm font-semibold text-primary-400 mb-3">Datos del Destinatario (para rastreo)</h4>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    Nombre completo
+                  </label>
+                  <input
+                    type="text"
+                    {...register('recipientName')}
+                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    placeholder="Juan Pérez García"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    Teléfono
+                  </label>
+                  <input
+                    type="tel"
+                    {...register('recipientPhone')}
+                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    placeholder="8112345678"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 mt-2">
+                <i className="fa-solid fa-info-circle mr-1"></i>
+                Estos datos aparecerán en el sistema de rastreo premium
+              </p>
             </div>
           </div>
 

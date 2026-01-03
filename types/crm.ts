@@ -83,11 +83,18 @@ export interface Shipment {
   description: string
   declaredValue: number
 
+  // Información del destinatario
+  recipient?: {
+    name: string
+    phone: string
+  }
+
   // Estado y tracking
   status: ShipmentStatus
   trackingNumber?: string
   estimatedDelivery?: Timestamp
   actualDelivery?: Timestamp
+  distance?: number // Distancia en km
 
   // Costos
   shippingCost: number

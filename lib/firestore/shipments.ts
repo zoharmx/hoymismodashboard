@@ -40,23 +40,104 @@ export function generateShipmentId(): string {
   return `HM-${year}-${timestamp}${random}`
 }
 
+// Calcular distancia estimada entre dos ciudades (valores aproximados)
+function estimateDistance(originCity: string, destCity: string): number {
+  // Mapa de distancias aproximadas entre ciudades comunes
+  const distances: Record<string, Record<string, number>> = {
+    'Houston': {
+      'Monterrey': 800,
+      'Guadalajara': 1400,
+      'Ciudad de México': 1500,
+      'Apodaca': 820,
+      'Tijuana': 2400,
+    },
+    'Laredo': {
+      'Monterrey': 220,
+      'Guadalajara': 1050,
+      'Ciudad de México': 1100,
+      'Apodaca': 240,
+    },
+    'El Paso': {
+      'Ciudad Juárez': 20,
+      'Chihuahua': 360,
+      'Monterrey': 900,
+    },
+  }
+
+  const origin = originCity.trim()
+  const dest = destCity.trim()
+
+  if (distances[origin]?.[dest]) {
+    return distances[origin][dest]
+  }
+
+  // Si no hay coincidencia exacta, retornar una distancia por defecto
+  if (origin.toLowerCase().includes('houston') || origin.toLowerCase().includes('texas')) {
+    return 1000 // Distancia promedio USA -> México
+  }
+
+  return 500 // Distancia por defecto
+}
+
+// Calcular fecha estimada de entrega
+function calculateEstimatedDelivery(
+  createdAt: Timestamp,
+  distance: number,
+  status: ShipmentStatus
+): Timestamp {
+  const baseDate = createdAt.toDate()
+  let daysToAdd = 2 // Por defecto 2 días
+
+  // Ajustar según distancia
+  if (distance > 2000) {
+    daysToAdd = 5 // Envíos de larga distancia
+  } else if (distance > 1000) {
+    daysToAdd = 3 // Envíos de mediana distancia
+  } else if (distance < 300) {
+    daysToAdd = 1 // Envíos locales
+  }
+
+  // Si ya está en tránsito, restar un día
+  if (status === 'en-transito') {
+    daysToAdd -= 1
+  }
+
+  const estimatedDate = new Date(baseDate)
+  estimatedDate.setDate(estimatedDate.getDate() + daysToAdd)
+
+  return Timestamp.fromDate(estimatedDate)
+}
+
 // Crear nuevo envío
 export async function createShipment(
   shipmentData: Omit<
     Shipment,
-    'id' | 'shipmentId' | 'createdAt' | 'updatedAt' | 'trackingHistory'
+    'id' | 'shipmentId' | 'createdAt' | 'updatedAt' | 'trackingHistory' | 'distance' | 'estimatedDelivery'
   >
 ): Promise<Shipment> {
   try {
     const now = Timestamp.now()
     const shipmentId = generateShipmentId()
 
+    // Calcular distancia estimada
+    const distance = estimateDistance(
+      shipmentData.origin.city,
+      shipmentData.destination.city
+    )
+
+    // Calcular fecha estimada de entrega
+    const estimatedDelivery = calculateEstimatedDelivery(
+      now,
+      distance,
+      shipmentData.status
+    )
+
     // Crear evento inicial de tracking
     const initialEvent: TrackingEvent = {
       date: now,
       status: shipmentData.status,
-      location: shipmentData.origin.city,
-      description: 'Envío registrado en el sistema',
+      location: `${shipmentData.origin.city}, ${shipmentData.origin.state}`,
+      description: 'Paquete recibido y registrado en el sistema',
     }
 
     const newShipment: Omit<Shipment, 'id'> = {
@@ -64,6 +145,8 @@ export async function createShipment(
       shipmentId,
       createdAt: now,
       updatedAt: now,
+      distance,
+      estimatedDelivery,
       trackingHistory: [initialEvent],
     }
 
