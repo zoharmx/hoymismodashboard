@@ -52,9 +52,11 @@ export default function RastreoPage() {
               id: doc.id,
               ...doc.data()
             } as Shipment))
-            const latestShipment = shipments.sort((a, b) =>
-              b.createdAt.toMillis() - a.createdAt.toMillis()
-            )[0]
+            const latestShipment = shipments.sort((a, b) => {
+              const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0
+              const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0
+              return bTime - aTime
+            })[0]
             setShipment(latestShipment)
           }
         } catch (err) {
@@ -94,9 +96,11 @@ export default function RastreoPage() {
         } as Shipment))
 
         // Sort by creation date and get the latest
-        const latestShipment = shipments.sort((a, b) =>
-          b.createdAt.toMillis() - a.createdAt.toMillis()
-        )[0]
+        const latestShipment = shipments.sort((a, b) => {
+          const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0
+          const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0
+          return bTime - aTime
+        })[0]
 
         setShipment(latestShipment)
       }

@@ -827,6 +827,13 @@
                 map = null;
             }
 
+            // Verificar que Mapbox GL esté cargado
+            if (typeof mapboxgl === 'undefined') {
+                console.error('Mapbox GL JS no está cargado');
+                domElements.mapContainer.classList.add('hidden');
+                return;
+            }
+
             mapboxgl.accessToken = MAPBOX_TOKEN;
 
             // Geocodificar origen y destino usando Mapbox Geocoding API
