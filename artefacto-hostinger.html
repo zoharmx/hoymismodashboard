@@ -799,6 +799,90 @@
         const MAPBOX_TOKEN = 'pk.eyJ1Ijoiem9oYXJteCIsImEiOiJjbWUwdmViYXYwOWVyMnFwdXJiN2FsMXIwIn0.t6-3BDRKYPEb7pxCItECog';
         let currentMapView = 'street';
 
+        // Coordenadas predefinidas para ciudades comunes (formato: [lng, lat])
+        const CITY_COORDINATES = {
+            // USA
+            'houston': [-95.3698, 29.7604],
+            'houston, tx': [-95.3698, 29.7604],
+            'houston, texas': [-95.3698, 29.7604],
+            'laredo': [-99.5075, 27.5306],
+            'laredo, tx': [-99.5075, 27.5306],
+            'laredo, texas': [-99.5075, 27.5306],
+            'mcallen': [-98.2300, 26.2034],
+            'mcallen, tx': [-98.2300, 26.2034],
+            'dallas': [-96.7970, 32.7767],
+            'dallas, tx': [-96.7970, 32.7767],
+            'san antonio': [-98.4936, 29.4241],
+            'san antonio, tx': [-98.4936, 29.4241],
+
+            // México
+            'monterrey': [-100.3161, 25.6866],
+            'monterrey, nl': [-100.3161, 25.6866],
+            'monterrey, nuevo leon': [-100.3161, 25.6866],
+            'monterrey, nuevo león': [-100.3161, 25.6866],
+            'apodaca': [-100.1875, 25.7804],
+            'apodaca, nl': [-100.1875, 25.7804],
+            'apodaca, nuevo leon': [-100.1875, 25.7804],
+            'apodaca, nuevo león': [-100.1875, 25.7804],
+            'guadalajara': [-103.3494, 20.6597],
+            'guadalajara, jalisco': [-103.3494, 20.6597],
+            'ciudad de mexico': [-99.1332, 19.4326],
+            'ciudad de méxico': [-99.1332, 19.4326],
+            'cdmx': [-99.1332, 19.4326],
+            'mexico city': [-99.1332, 19.4326],
+            'queretaro': [-100.3899, 20.5888],
+            'querétaro': [-100.3899, 20.5888],
+            'puebla': [-98.2063, 19.0414],
+            'tijuana': [-117.0382, 32.5149],
+            'reynosa': [-98.2774, 26.0922],
+            'reynosa, tamaulipas': [-98.2774, 26.0922],
+            'nuevo laredo': [-99.5167, 27.4769],
+            'nuevo laredo, tamaulipas': [-99.5167, 27.4769],
+            'matamoros': [-97.5042, 25.8796],
+            'matamoros, tamaulipas': [-97.5042, 25.8796],
+            'saltillo': [-100.9737, 25.4232],
+            'saltillo, coahuila': [-100.9737, 25.4232],
+            'torreon': [-103.4067, 25.5428],
+            'torreón': [-103.4067, 25.5428],
+            'san luis potosi': [-100.9855, 22.1565],
+            'san luis potosí': [-100.9855, 22.1565],
+            'aguascalientes': [-102.2916, 21.8853],
+            'leon': [-101.6860, 21.1250],
+            'león': [-101.6860, 21.1250],
+            'culiacan': [-107.3940, 24.8091],
+            'culiacán': [-107.3940, 24.8091],
+            'hermosillo': [-110.9559, 29.0729],
+            'chihuahua': [-106.0889, 28.6353],
+            'juarez': [-106.4245, 31.6904],
+            'ciudad juarez': [-106.4245, 31.6904],
+            'ciudad juárez': [-106.4245, 31.6904],
+            'merida': [-89.5926, 20.9674],
+            'mérida': [-89.5926, 20.9674],
+            'cancun': [-86.8515, 21.1619],
+            'cancún': [-86.8515, 21.1619]
+        };
+
+        // Función para obtener coordenadas predefinidas de una ciudad
+        function getCityCoordinates(cityName) {
+            if (!cityName) return null;
+
+            // Normalizar el nombre de la ciudad
+            const normalized = cityName.toLowerCase().trim();
+
+            // Buscar en el mapa de coordenadas
+            if (CITY_COORDINATES[normalized]) {
+                return CITY_COORDINATES[normalized];
+            }
+
+            // Intentar buscar solo el nombre de la ciudad sin el estado
+            const cityOnly = normalized.split(',')[0].trim();
+            if (CITY_COORDINATES[cityOnly]) {
+                return CITY_COORDINATES[cityOnly];
+            }
+
+            return null;
+        }
+
         function setMapView(view) {
             if (!map) return;
 
@@ -841,33 +925,67 @@
             let destCoords = null;
 
             try {
-                // Intentar usar coordenadas ya proporcionadas
+                // === DESTINO ===
+                // 1. Intentar usar coordenadas ya proporcionadas
                 if (data.destino_detallado?.coordenadas && Array.isArray(data.destino_detallado.coordenadas)) {
                     destCoords = data.destino_detallado.coordenadas;
                 } else {
-                    // Geocodificar destino con Mapbox
-                    const destinationAddress = data.destino_detallado?.direccion || data.direccion_de_entrega;
-                    if (destinationAddress) {
-                        const destResponse = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(destinationAddress)}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
-                        const destData = await destResponse.json();
+                    // 2. Intentar coordenadas predefinidas por ciudad
+                    const destCity = data.destino_detallado?.ciudad || data.destino;
+                    destCoords = getCityCoordinates(destCity);
 
-                        if (destData.features && destData.features.length > 0) {
-                            destCoords = destData.features[0].center; // [lng, lat]
+                    // 3. Si no hay coordenadas predefinidas, geocodificar con contexto
+                    if (!destCoords) {
+                        const destinationAddress = data.destino_detallado?.direccion || data.direccion_de_entrega;
+                        if (destinationAddress) {
+                            // Agregar contexto "Mexico" a la búsqueda para mejorar precisión
+                            const searchQuery = destinationAddress.includes('Mexico') || destinationAddress.includes('México')
+                                ? destinationAddress
+                                : `${destinationAddress}, Mexico`;
+
+                            const destResponse = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${MAPBOX_TOKEN}&country=mx&limit=1`);
+                            const destData = await destResponse.json();
+
+                            if (destData.features && destData.features.length > 0) {
+                                destCoords = destData.features[0].center; // [lng, lat]
+                            }
                         }
                     }
                 }
 
-                // Intentar usar coordenadas de origen ya proporcionadas
+                // === ORIGEN ===
+                // 1. Intentar usar coordenadas ya proporcionadas
                 if (data.origen_detallado?.coordenadas && Array.isArray(data.origen_detallado.coordenadas)) {
                     originCoords = data.origen_detallado.coordenadas;
-                } else if (data.origen_detallado?.direccion || data.origen_detallado?.ciudad) {
-                    // Geocodificar origen con Mapbox
-                    const originAddress = data.origen_detallado.direccion || data.origen_detallado.ciudad;
-                    const originResponse = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(originAddress)}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
-                    const originData = await originResponse.json();
+                } else {
+                    // 2. Intentar coordenadas predefinidas por ciudad
+                    const originCity = data.origen_detallado?.ciudad;
+                    originCoords = getCityCoordinates(originCity);
 
-                    if (originData.features && originData.features.length > 0) {
-                        originCoords = originData.features[0].center; // [lng, lat]
+                    // 3. Si no hay coordenadas predefinidas, geocodificar con contexto
+                    if (!originCoords && (data.origen_detallado?.direccion || data.origen_detallado?.ciudad)) {
+                        const originAddress = data.origen_detallado.ciudad || data.origen_detallado.direccion;
+
+                        // Determinar el país del origen (usualmente USA o México)
+                        const isUSA = originAddress.toLowerCase().includes('houston') ||
+                                     originAddress.toLowerCase().includes('texas') ||
+                                     originAddress.toLowerCase().includes('tx') ||
+                                     originAddress.toLowerCase().includes('laredo') ||
+                                     originAddress.toLowerCase().includes('dallas') ||
+                                     originAddress.toLowerCase().includes('mcallen');
+
+                        const searchQuery = isUSA
+                            ? `${originAddress}, USA`
+                            : `${originAddress}, Mexico`;
+
+                        const countryCode = isUSA ? 'us' : 'mx';
+
+                        const originResponse = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${MAPBOX_TOKEN}&country=${countryCode}&limit=1`);
+                        const originData = await originResponse.json();
+
+                        if (originData.features && originData.features.length > 0) {
+                            originCoords = originData.features[0].center; // [lng, lat]
+                        }
                     }
                 }
 
