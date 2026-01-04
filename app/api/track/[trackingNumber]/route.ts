@@ -32,12 +32,20 @@ export async function GET(
     const docData = querySnapshot.docs[0].data();
     
     // Mapear el trackingHistory al formato que espera el frontend
-    const historialMapeado = (docData.trackingHistory || []).map((event: any) => ({
-      status: event.status || event.description || 'Actualización',
-      timestamp: event.date || event.timestamp,
-      location: event.location || '',
-      notes: event.description || event.notes || ''
-    }));
+    const historialMapeado = (docData.trackingHistory || []).map((event: any) => {
+      // Convertir timestamp a ISO string para que el frontend lo procese
+      let timestampValue = event.date || event.timestamp;
+      if (timestampValue && typeof timestampValue.toDate === 'function') {
+        timestampValue = timestampValue.toDate().toISOString();
+      }
+
+      return {
+        status: event.status || event.description || 'Actualización',
+        timestamp: timestampValue,
+        location: event.location || '',
+        notes: event.description || event.notes || ''
+      };
+    });
 
     // Mapeo de datos de Firestore al formato que espera tu HTML
     const responseData = {
