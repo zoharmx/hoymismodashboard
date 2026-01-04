@@ -12,9 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Leaflet (Mapas) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Mapbox GL (Mapas Premium) -->
+    <link href='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js'></script>
 
     <!-- QR Code Generator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -65,12 +65,14 @@
             min-height: 100vh;
         }
 
-        /* Mapa en modo oscuro */
-        .leaflet-layer,
-        .leaflet-control-zoom-in,
-        .leaflet-control-zoom-out,
-        .leaflet-control-attribution {
-            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        /* Mapbox styles */
+        .mapboxgl-ctrl-attrib {
+            opacity: 0.5;
+            font-size: 10px;
+        }
+
+        .mapboxgl-canvas {
+            border-radius: 12px;
         }
         
         /* Glassmorphism Cards */
@@ -354,8 +356,11 @@
     </footer>
 
     <script>
-        const API_URL = "/api/track/";
-        const AI_SUMMARY_URL = "/api/ai-summary";
+        // ⚙️ CONFIGURACIÓN PARA DESARROLLO LOCAL
+        // Usa rutas relativas ya que el HTML está en el mismo dominio que las APIs
+        const API_URL = `/api/track/`;
+        const AI_SUMMARY_URL = `/api/ai-summary`;
+
         let map = null;
         let currentPackageData = {};
         let routeLine = null;
@@ -363,19 +368,56 @@
         let destinationMarker = null;
 
         const propertyMap = {
+            guia: {
+                title: "Información del Envío",
+                icon: "fa-barcode",
+                fields: {
+                    'numero_de_guia': 'Número de Guía',
+                    'estatus_actual': 'Estado Actual',
+                    'fecha_de_recoleccion': 'Fecha de Recolección'
+                }
+            },
+            origen: {
+                title: "Origen",
+                icon: "fa-location-dot",
+                fields: {
+                    'origen_ciudad': 'Ciudad de Origen',
+                    'origen_direccion': 'Dirección de Origen'
+                }
+            },
+            destino: {
+                title: "Destino",
+                icon: "fa-map-pin",
+                fields: {
+                    'destino_ciudad': 'Ciudad de Destino',
+                    'direccion_de_entrega': 'Dirección Completa de Entrega'
+                }
+            },
             remitente: {
                 title: "Remitente",
                 icon: "fa-user",
-                fields: { 'firstname': 'Nombre', 'lastname': 'Apellido', 'phone': 'Teléfono' }
+                fields: {
+                    'firstname': 'Nombre',
+                    'phone': 'Teléfono'
+                }
             },
             destinatario: {
-                title: "Destinatario & Paquete",
+                title: "Destinatario",
+                icon: "fa-user-tag",
+                fields: {
+                    'nombre_de_receptor': 'Nombre del Receptor',
+                    'receptor_telefono': 'Teléfono del Receptor'
+                }
+            },
+            paquete: {
+                title: "Detalles del Paquete",
                 icon: "fa-box",
                 fields: {
-                    'numero_de_guia': 'Guía', 'nombre_de_receptor': 'Recibe',
-                    'direccion_de_entrega': 'Dirección', 'city': 'Ciudad',
-                    'destino': 'Destino', 'fecha_de_recoleccion': 'Fecha Recolección',
-                    'dimensiones_del_paquete': 'Medidas', 'peso__kg_': 'Peso (kg)', 'precio_total_usd': 'Costo (USD)'
+                    'peso__kg_': 'Peso (kg)',
+                    'dimensiones_del_paquete': 'Dimensiones',
+                    'distancia_km': 'Distancia Total (km)',
+                    'fecha_estimada_entrega': 'Entrega Estimada',
+                    'precio_total_usd': 'Costo Total (USD)'
                 }
             }
         };
@@ -474,6 +516,28 @@
             // 2. ETA & Distance
             calculateETA(data);
 
+            // 3. Preparar datos transformados para el grid
+            const transformedData = {
+                ...data,
+                // Extraer datos anidados
+                origen_ciudad: data.origen_detallado?.ciudad || '',
+                origen_direccion: data.origen_detallado?.direccion || '',
+                destino_ciudad: data.destino || data.destino_detallado?.ciudad || '',
+                receptor_telefono: data.destinatario?.telefono || '',
+                // Formatear fecha estimada
+                fecha_estimada_entrega: data.fecha_estimada_entrega
+                    ? new Date(data.fecha_estimada_entrega).toLocaleDateString('es-MX', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                    })
+                    : null,
+                // Asegurar que remitente tenga estructura plana
+                firstname: data.remitente?.firstname || data.clientName || '',
+                phone: data.remitente?.phone || data.clientPhone || '',
+                nombre_de_receptor: data.destinatario?.nombre_de_receptor || data.recipient?.name || ''
+            };
+
             // 3. Grid Details
             let gridHTML = '';
             for (const sectionKey in propertyMap) {
@@ -481,11 +545,11 @@
                 let fieldsHTML = '';
 
                 for (const fieldKey in section.fields) {
-                    if (data[fieldKey]) {
+                    if (transformedData[fieldKey]) {
                         fieldsHTML += `
                             <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 hover:border-slate-600 transition-colors">
                                 <span class="block text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">${section.fields[fieldKey]}</span>
-                                <span class="block text-sm text-slate-200 font-medium truncate" title="${data[fieldKey]}">${data[fieldKey]}</span>
+                                <span class="block text-sm text-slate-200 font-medium break-words">${transformedData[fieldKey]}</span>
                             </div>`;
                     }
                 }
@@ -509,19 +573,20 @@
                 renderHistory(data.historial);
             }
 
-            // 5. Map
-            if (data.direccion_de_entrega) {
-                domElements.mapContainer.classList.remove('hidden');
-                setTimeout(() => crearMapa(data.direccion_de_entrega), 100);
-            }
-
-            // Show
+            // Show first (important for map sizing)
             domElements.resultadoWrapper.classList.remove('hidden');
             // Small delay for fade in animation
             setTimeout(() => {
                 domElements.resultadoWrapper.classList.remove('opacity-0');
                 domElements.resultadoWrapper.classList.add('opacity-100');
             }, 50);
+
+            // 5. Map - Create after UI is visible
+            if (data.direccion_de_entrega || data.destino_detallado) {
+                domElements.mapContainer.classList.remove('hidden');
+                // Wait for UI to be fully visible before creating map
+                setTimeout(() => crearMapa(data), 800);
+            }
         }
 
         function actualizarTimeline(estatusActual) {
@@ -729,10 +794,9 @@
             window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         }
 
-        // Variables para cambiar vista del mapa
+        // Mapbox configuration
+        const MAPBOX_TOKEN = 'pk.eyJ1Ijoiem9oYXJteCIsImEiOiJjbWUwdmViYXYwOWVyMnFwdXJiN2FsMXIwIn0.t6-3BDRKYPEb7pxCItECog';
         let currentMapView = 'street';
-        let streetLayer = null;
-        let satelliteLayer = null;
 
         function setMapView(view) {
             if (!map) return;
@@ -742,27 +806,13 @@
             const satelliteBtn = document.getElementById('map-satellite-btn');
 
             if (view === 'street') {
-                if (satelliteLayer) map.removeLayer(satelliteLayer);
-                if (!streetLayer) {
-                    streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        maxZoom: 19,
-                    });
-                }
-                streetLayer.addTo(map);
-
+                map.setStyle('mapbox://styles/mapbox/dark-v11');
                 streetBtn.classList.add('bg-primary-500', 'text-slate-900');
                 streetBtn.classList.remove('text-slate-400');
                 satelliteBtn.classList.remove('bg-primary-500', 'text-slate-900');
                 satelliteBtn.classList.add('text-slate-400');
             } else {
-                if (streetLayer) map.removeLayer(streetLayer);
-                if (!satelliteLayer) {
-                    satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                        maxZoom: 19,
-                    });
-                }
-                satelliteLayer.addTo(map);
-
+                map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
                 satelliteBtn.classList.add('bg-primary-500', 'text-slate-900');
                 satelliteBtn.classList.remove('text-slate-400');
                 streetBtn.classList.remove('bg-primary-500', 'text-slate-900');
@@ -770,52 +820,46 @@
             }
         }
 
-        async function crearMapa(destinationAddress) {
+        async function crearMapa(data) {
             if (map) {
                 map.remove();
                 map = null;
             }
 
-            // Limpiar markers y líneas anteriores
-            routeLine = null;
-            originMarker = null;
-            destinationMarker = null;
+            mapboxgl.accessToken = MAPBOX_TOKEN;
 
-            map = L.map('map', {
-                zoomControl: false,
-                attributionControl: false
-            }).setView([23.6345, -102.5528], 5);
-
-            // Control de zoom
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-            // Inicializar con vista street
-            streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-            }).addTo(map);
-
-            // Geocodificar origen y destino
-            const data = currentPackageData;
+            // Geocodificar origen y destino usando Mapbox Geocoding API
             let originCoords = null;
             let destCoords = null;
 
             try {
-                // Geocodificar destino
-                const destResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destinationAddress)}&limit=1`);
-                const destData = await destResponse.json();
+                // Intentar usar coordenadas ya proporcionadas
+                if (data.destino_detallado?.coordenadas && Array.isArray(data.destino_detallado.coordenadas)) {
+                    destCoords = data.destino_detallado.coordenadas;
+                } else {
+                    // Geocodificar destino con Mapbox
+                    const destinationAddress = data.destino_detallado?.direccion || data.direccion_de_entrega;
+                    if (destinationAddress) {
+                        const destResponse = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(destinationAddress)}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
+                        const destData = await destResponse.json();
 
-                if (destData && destData.length > 0) {
-                    destCoords = [parseFloat(destData[0].lat), parseFloat(destData[0].lon)];
+                        if (destData.features && destData.features.length > 0) {
+                            destCoords = destData.features[0].center; // [lng, lat]
+                        }
+                    }
                 }
 
-                // Geocodificar origen si existe
-                if (data.origen_detallado?.direccion || data.origen_detallado?.ciudad) {
+                // Intentar usar coordenadas de origen ya proporcionadas
+                if (data.origen_detallado?.coordenadas && Array.isArray(data.origen_detallado.coordenadas)) {
+                    originCoords = data.origen_detallado.coordenadas;
+                } else if (data.origen_detallado?.direccion || data.origen_detallado?.ciudad) {
+                    // Geocodificar origen con Mapbox
                     const originAddress = data.origen_detallado.direccion || data.origen_detallado.ciudad;
-                    const originResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(originAddress)}&limit=1`);
+                    const originResponse = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(originAddress)}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
                     const originData = await originResponse.json();
 
-                    if (originData && originData.length > 0) {
-                        originCoords = [parseFloat(originData[0].lat), parseFloat(originData[0].lon)];
+                    if (originData.features && originData.features.length > 0) {
+                        originCoords = originData.features[0].center; // [lng, lat]
                     }
                 }
 
@@ -825,61 +869,121 @@
                     return;
                 }
 
-                // Iconos personalizados
-                const originIcon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 24px; height: 24px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 15px rgba(16, 185, 129, 0.6); display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-location-dot" style="color: white; font-size: 12px;"></i></div>`,
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
+                // Crear mapa Mapbox con estilo oscuro
+                map = new mapboxgl.Map({
+                    container: 'map',
+                    style: 'mapbox://styles/mapbox/dark-v11',
+                    center: destCoords,
+                    zoom: 5,
+                    attributionControl: true
                 });
 
-                const destIcon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); width: 28px; height: 28px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;"><i class="fa-solid fa-flag-checkered" style="color: white; font-size: 14px;"></i></div>`,
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 14]
-                });
+                // Añadir controles de navegación
+                map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
-                // Añadir marcadores
+                // Crear popup para marcadores
+                const createPopup = (title, address) => {
+                    return new mapboxgl.Popup({ offset: 25 })
+                        .setHTML(`
+                            <div style="padding: 8px; font-family: sans-serif;">
+                                <div style="font-weight: bold; color: #f59e0b; margin-bottom: 4px;">${title}</div>
+                                <div style="font-size: 12px; color: #333;">${address}</div>
+                            </div>
+                        `);
+                };
+
+                // Añadir marcador de origen
                 if (originCoords) {
-                    originMarker = L.marker(originCoords, { icon: originIcon }).addTo(map)
-                        .bindPopup(`<div style="color: #333; font-family: sans-serif; font-size: 12px;"><b>Origen:</b><br>${data.origen_detallado.direccion || data.origen_detallado.ciudad}</div>`);
+                    const originEl = document.createElement('div');
+                    originEl.innerHTML = `
+                        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                             width: 30px; height: 30px; border-radius: 50%;
+                             border: 3px solid #fff; box-shadow: 0 0 20px rgba(16, 185, 129, 0.8);
+                             display: flex; align-items: center; justify-content: center;">
+                            <i class="fa-solid fa-location-dot" style="color: white; font-size: 14px;"></i>
+                        </div>`;
+
+                    new mapboxgl.Marker({ element: originEl })
+                        .setLngLat(originCoords)
+                        .setPopup(createPopup('Origen', data.origen_detallado?.direccion || data.origen_detallado?.ciudad))
+                        .addTo(map);
                 }
 
-                destinationMarker = L.marker(destCoords, { icon: destIcon }).addTo(map)
-                    .bindPopup(`<div style="color: #333; font-family: sans-serif; font-size: 12px;"><b>Destino:</b><br>${destinationAddress}</div>`);
+                // Añadir marcador de destino (animado)
+                const destEl = document.createElement('div');
+                destEl.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                         width: 36px; height: 36px; border-radius: 50%;
+                         border: 3px solid #fff; box-shadow: 0 0 25px rgba(245, 158, 11, 1);
+                         display: flex; align-items: center; justify-content: center;
+                         animation: pulse 2s infinite;">
+                        <i class="fa-solid fa-flag-checkered" style="color: white; font-size: 16px;"></i>
+                    </div>`;
+
+                new mapboxgl.Marker({ element: destEl })
+                    .setLngLat(destCoords)
+                    .setPopup(createPopup('Destino', data.destino_detallado?.direccion || data.direccion_de_entrega))
+                    .addTo(map);
 
                 // Dibujar ruta animada si hay origen
                 if (originCoords && destCoords) {
-                    // Línea base (fondo)
-                    L.polyline([originCoords, destCoords], {
-                        color: '#334155',
-                        weight: 4,
-                        opacity: 0.5,
-                        smoothFactor: 1
-                    }).addTo(map);
+                    map.on('load', () => {
+                        // Añadir source y layer para la ruta
+                        map.addSource('route', {
+                            'type': 'geojson',
+                            'data': {
+                                'type': 'Feature',
+                                'properties': {},
+                                'geometry': {
+                                    'type': 'LineString',
+                                    'coordinates': [originCoords, destCoords]
+                                }
+                            }
+                        });
 
-                    // Línea animada (encima)
-                    routeLine = L.polyline([originCoords, destCoords], {
-                        color: '#f59e0b',
-                        weight: 3,
-                        opacity: 0.8,
-                        smoothFactor: 1,
-                        className: 'animated-route'
-                    }).addTo(map);
+                        // Línea base (fondo)
+                        map.addLayer({
+                            'id': 'route-bg',
+                            'type': 'line',
+                            'source': 'route',
+                            'layout': {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
+                            'paint': {
+                                'line-color': '#334155',
+                                'line-width': 4,
+                                'line-opacity': 0.5
+                            }
+                        });
+
+                        // Línea principal (encima)
+                        map.addLayer({
+                            'id': 'route-main',
+                            'type': 'line',
+                            'source': 'route',
+                            'layout': {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
+                            'paint': {
+                                'line-color': '#f59e0b',
+                                'line-width': 3,
+                                'line-opacity': 0.9
+                            }
+                        });
+                    });
 
                     // Ajustar vista para mostrar toda la ruta
-                    const bounds = L.latLngBounds([originCoords, destCoords]);
-                    map.fitBounds(bounds, { padding: [50, 50] });
+                    const bounds = new mapboxgl.LngLatBounds();
+                    bounds.extend(originCoords);
+                    bounds.extend(destCoords);
+                    map.fitBounds(bounds, { padding: 80 });
                 } else if (destCoords) {
                     // Solo destino
-                    map.setView(destCoords, 13);
+                    map.setCenter(destCoords);
+                    map.setZoom(12);
                 }
-
-                // Fix para el problema del mapa gris
-                setTimeout(() => {
-                    map.invalidateSize();
-                }, 500);
 
             } catch (error) {
                 console.error('Error creando mapa:', error);

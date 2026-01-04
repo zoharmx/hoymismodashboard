@@ -33,7 +33,9 @@ export async function POST(request: Request) {
     );
 
     if (!response.ok) {
-      throw new Error('Gemini API error');
+      console.warn('Gemini API returned non-OK status:', response.status);
+      // Fallback: retornar mensaje predefinido según el estado
+      return NextResponse.json(getFallbackMessage(status), { headers });
     }
 
     const result = await response.json();
@@ -45,11 +47,48 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Error en AI summary:', error);
-    return NextResponse.json(
-      { error: 'Error al generar resumen' },
-      { status: 500, headers }
-    );
+    // En caso de error, retornar mensaje fallback
+    const { status } = await request.json().catch(() => ({ status: 'desconocido' }));
+    return NextResponse.json(getFallbackMessage(status), { headers });
   }
+}
+
+// Mensajes fallback cuando Gemini no está disponible
+function getFallbackMessage(status: string): { title: string; explanation: string; icon: string } {
+  const messages: Record<string, any> = {
+    'pendiente': {
+      title: 'Tu paquete está registrado',
+      explanation: 'Hemos recibido tu envío en nuestro sistema. Pronto será procesado y comenzará su viaje hacia su destino.',
+      icon: 'fa-solid fa-box'
+    },
+    'en-transito': {
+      title: 'En camino a su destino',
+      explanation: 'Tu paquete está viajando actualmente. Nuestro equipo lo está transportando de forma segura hacia la ciudad de destino.',
+      icon: 'fa-solid fa-truck-fast'
+    },
+    'en-distribucion': {
+      title: 'En centro de distribución',
+      explanation: 'Tu paquete ha llegado a nuestro centro de distribución. Está siendo preparado para la entrega final.',
+      icon: 'fa-solid fa-warehouse'
+    },
+    'en-aduana': {
+      title: 'En proceso aduanal',
+      explanation: 'Tu paquete está pasando por los trámites aduanales requeridos. Este es un proceso normal para envíos internacionales.',
+      icon: 'fa-solid fa-passport'
+    },
+    'entregado': {
+      title: '¡Paquete entregado!',
+      explanation: 'Tu envío ha sido entregado exitosamente en la dirección de destino. ¡Gracias por confiar en HoyMismo!',
+      icon: 'fa-solid fa-check-circle'
+    }
+  };
+
+  const normalizedStatus = status.toLowerCase();
+  return messages[normalizedStatus] || {
+    title: 'Estado del paquete',
+    explanation: `Tu paquete está actualmente en estado: ${status}. Nuestro equipo está trabajando para completar la entrega.`,
+    icon: 'fa-solid fa-info-circle'
+  };
 }
 
 // Agregar soporte para OPTIONS (preflight CORS)
