@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-// Asegúrate de importar tu instancia de db de firebase correcta
-import { db } from '@/lib/firebase-config';
+import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export async function GET(
