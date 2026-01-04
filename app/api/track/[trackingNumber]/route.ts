@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 // Asegúrate de importar tu instancia de db de firebase correcta
-import { db } from '@/lib/firebase-config'; 
+import { db } from '@/lib/firebase-config';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export async function GET(
@@ -8,6 +8,13 @@ export async function GET(
   { params }: { params: { trackingNumber: string } }
 ) {
   const trackingNumber = params.trackingNumber;
+
+  // Configurar CORS para permitir peticiones desde Hostinger
+  const headers = {
+    'Access-Control-Allow-Origin': '*', // O específicamente: 'https://hoymismopaqueteria.com'
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 
   try {
     // 1. Buscamos en la colección de envíos usando shipmentId
@@ -18,7 +25,7 @@ export async function GET(
     if (querySnapshot.empty) {
       return NextResponse.json(
         { detail: 'Guía no encontrada' },
-        { status: 404 }
+        { status: 404, headers }
       );
     }
 
@@ -65,13 +72,25 @@ export async function GET(
       distancia_km: docData.distance || null
     };
 
-    return NextResponse.json(responseData);
+    return NextResponse.json(responseData, { headers });
 
   } catch (error) {
     console.error('Error en API de rastreo:', error);
     return NextResponse.json(
       { detail: 'Error interno del servidor' },
-      { status: 500 }
+      { status: 500, headers }
     );
   }
+}
+
+// Agregar soporte para OPTIONS (preflight CORS)
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }

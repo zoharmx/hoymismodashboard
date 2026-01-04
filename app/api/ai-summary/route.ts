@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 
+// Configurar CORS para permitir peticiones desde Hostinger
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 export async function POST(request: Request) {
   try {
     const { status } = await request.json();
@@ -7,7 +14,7 @@ export async function POST(request: Request) {
     if (!status) {
       return NextResponse.json(
         { error: 'Status is required' },
-        { status: 400 }
+        { status: 400, headers }
       );
     }
 
@@ -34,13 +41,25 @@ export async function POST(request: Request) {
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const data = JSON.parse(text);
 
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers });
 
   } catch (error) {
     console.error('Error en AI summary:', error);
     return NextResponse.json(
       { error: 'Error al generar resumen' },
-      { status: 500 }
+      { status: 500, headers }
     );
   }
+}
+
+// Agregar soporte para OPTIONS (preflight CORS)
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }

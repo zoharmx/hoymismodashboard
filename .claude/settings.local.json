@@ -26,7 +26,8 @@
       "Bash(find:*)",
       "Bash(cp:*)",
       "Bash(vercel --version:*)",
-      "Bash(vercel ls:*)"
+      "Bash(vercel ls:*)",
+      "Bash(move route.ts appapitrack[trackingNumber]route.ts)"
     ]
   }
 }
