@@ -53,15 +53,17 @@ export async function GET(
         nombre_de_receptor: docData.recipient?.name || '',
         peso__kg_: docData.weight || 0,
         fecha_de_recoleccion: docData.createdAt?.toDate().toISOString().split('T')[0],
-        destino: docData.destination.city
+        destino: docData.destination.city // Solo el nombre de la ciudad
       },
-      // Datos adicionales para features premium
-      origen: {
+      // Campo plano para compatibilidad con el HTML
+      destino: docData.destination.city,
+      // Datos adicionales para features premium (con nombres diferentes)
+      origen_detallado: {
         ciudad: docData.origin?.city || 'Houston',
         direccion: docData.origin?.street || '',
         coordenadas: docData.origin?.coordinates || null
       },
-      destino: {
+      destino_detallado: {
         ciudad: docData.destination.city,
         direccion: `${docData.destination.street}, ${docData.destination.city}, ${docData.destination.state}`,
         coordenadas: docData.destination?.coordinates || null

@@ -584,7 +584,10 @@
                     body: JSON.stringify({ status })
                 });
 
-                if (!response.ok) throw new Error('AI service error');
+                if (!response.ok) {
+                    console.warn('AI service not available:', response.status);
+                    throw new Error('AI service error');
+                }
 
                 const data = await response.json();
 
@@ -596,7 +599,13 @@
                         <p class="text-slate-300 leading-relaxed">${data.explanation}</p>
                     </div>`;
             } catch (error) {
-                summaryContainer.innerHTML = '<p class="text-red-400 text-xs">Asistente temporalmente no disponible.</p>';
+                console.error('AI Summary error:', error);
+                // Mostrar mensaje más amigable sin hacer que parezca un error crítico
+                summaryContainer.innerHTML = `
+                    <p class="text-slate-400 text-xs">
+                        <i class="fa-solid fa-info-circle mr-1"></i>
+                        El asistente de IA no está disponible en este momento. Tu paquete está <strong class="text-white">${status}</strong>.
+                    </p>`;
                 btn.style.display = 'inline-flex';
             }
         }
@@ -800,8 +809,8 @@
                 }
 
                 // Geocodificar origen si existe
-                if (data.origen?.direccion || data.origen?.ciudad) {
-                    const originAddress = data.origen.direccion || data.origen.ciudad;
+                if (data.origen_detallado?.direccion || data.origen_detallado?.ciudad) {
+                    const originAddress = data.origen_detallado.direccion || data.origen_detallado.ciudad;
                     const originResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(originAddress)}&limit=1`);
                     const originData = await originResponse.json();
 
@@ -834,7 +843,7 @@
                 // Añadir marcadores
                 if (originCoords) {
                     originMarker = L.marker(originCoords, { icon: originIcon }).addTo(map)
-                        .bindPopup(`<div style="color: #333; font-family: sans-serif; font-size: 12px;"><b>Origen:</b><br>${data.origen.direccion || data.origen.ciudad}</div>`);
+                        .bindPopup(`<div style="color: #333; font-family: sans-serif; font-size: 12px;"><b>Origen:</b><br>${data.origen_detallado.direccion || data.origen_detallado.ciudad}</div>`);
                 }
 
                 destinationMarker = L.marker(destCoords, { icon: destIcon }).addTo(map)
