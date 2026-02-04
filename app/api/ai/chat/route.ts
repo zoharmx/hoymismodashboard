@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getMistralClient } from '@/lib/ai/mistral'
 import { getDeepSeekClient } from '@/lib/ai/deepseek'
 import { tools, executeTool } from '@/lib/ai/tools'
+import { getSystemSettings } from '@/lib/firestore/settings'
 
 export const runtime = 'nodejs'
 
@@ -17,8 +18,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Get API keys from environment variables
-    const mistralApiKey = process.env.MISTRAL_API_KEY
-    const deepseekApiKey = process.env.DEEPSEEK_API_KEY
+    let mistralApiKey = process.env.MISTRAL_API_KEY
+    let deepseekApiKey = process.env.DEEPSEEK_API_KEY
+
+    // If keys are not in environment variables, try to get them from Firestore settings
+    if (!mistralApiKey || !deepseekApiKey) {
+      try {
+        const settings = await getSystemSettings()
+        if (settings?.apiKeys) {
+          if (!mistralApiKey && settings.apiKeys.mistral) {
+            mistralApiKey = settings.apiKeys.mistral
+          }
+          if (!deepseekApiKey && settings.apiKeys.deepseek) {
+            deepseekApiKey = settings.apiKeys.deepseek
+          }
+        }
+      } catch (settingsError) {
+        console.warn('Failed to fetch system settings for API keys:', settingsError)
+        // Continue execution, will fail later if no keys are found
+      }
+    }
 
     // System prompt for the AI assistant
     const systemPrompt = {
